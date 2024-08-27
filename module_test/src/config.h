@@ -25,6 +25,12 @@
 #define PIN_IR_SDA          39
 #define PIN_IR_SCL          38
 
+#define PIN_RUMBLE          11
+#define PIN_RECOIL          12
+#define PIN_BUTTON_B        13
+#define PIN_TRIGGER         14
+
+#define PIN_LED_STRIP       48
 /*
 *****************************************************************************************
 * MACROS & STRUCTURES

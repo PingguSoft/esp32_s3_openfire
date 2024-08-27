@@ -1,6 +1,8 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <driver/i2s.h>
+#include <arduino-timer.h>
+#include <Adafruit_NeoPixel.h>
 #include "DFRobotIRPosition.h"
 #include "config.h"
 #include "debug.h"
@@ -12,6 +14,9 @@ typedef struct {
 
 static DFRobotIRPosition _ir;
 static ir_pos_t  _pos[4];
+
+static Adafruit_NeoPixel _pixels(1, PIN_LED_STRIP, NEO_GRB + NEO_KHZ800);
+static Timer<16, millis, const char *> _timer;
 
 void ir_clk_init(int port, int mclk, uint32_t hz) {
     i2s_config_t i2s_config_dac = {
@@ -50,19 +55,29 @@ void printResult(ir_pos_t *pos, int size) {
         LOGV("------------------\n");
 }
 
-void setup() {
-    Serial.begin(115200);
-    LOGV("Start !!!\n");
+typedef struct {
+    uint8_t pin;
+    uint8_t mode;
+    uint8_t value;
+} pin_mode_t;
 
-    pinMode(PIN_IR_RESET, OUTPUT);
-    digitalWrite(PIN_IR_RESET, LOW);
-    Wire.begin(PIN_IR_SDA, PIN_IR_SCL, 400000);
-    ir_clk_init(0, 25000000, 48000);
-    digitalWrite(PIN_IR_RESET, HIGH);
-    _ir.begin();
+const pin_mode_t _tbl_pins[] = {
+    { PIN_IR_RESET,  OUTPUT, LOW },
+
+    { PIN_RUMBLE, OUTPUT, LOW },
+    { PIN_RECOIL, OUTPUT, LOW },
+    { PIN_BUTTON_B, INPUT_PULLUP, HIGH },
+    { PIN_TRIGGER,  INPUT_PULLUP, HIGH },
+};
+
+
+bool print_message(const char *m) {
+  Serial.print("print_message: ");
+  Serial.println(m);
+  return true; // repeat? true
 }
 
-void loop() {
+bool check_ir_camera(const char *m) {
     _ir.requestPosition();
     if (_ir.available()) {
         for (int i = 0; i < 4; i++) {
@@ -73,5 +88,80 @@ void loop() {
     } else {
         LOGE("Device not available!\n");
     }
-    delay(100);
+    return true;
+}
+
+void setup() {
+    Serial.begin(115200);
+    LOGV("Start !!!\n");
+
+    for (int i = 0; i < ARRAY_SIZE(_tbl_pins); i++) {
+        pinMode(_tbl_pins[i].pin, _tbl_pins[i].mode);
+        if (_tbl_pins[i].mode == OUTPUT) {
+            digitalWrite(_tbl_pins[i].pin, _tbl_pins[i].value);
+        }
+    }
+
+    Wire.begin(PIN_IR_SDA, PIN_IR_SCL, 400000);
+    ir_clk_init(0, 25000000, 48000);
+    digitalWrite(PIN_IR_RESET, HIGH);
+    _ir.begin();
+
+    _pixels.begin();
+    _pixels.show();
+    _pixels.setBrightness(50);
+    _pixels.setPixelColor(0, _pixels.Color(  0,   0, 255));
+    _pixels.show();
+
+    _timer.every(100, check_ir_camera, NULL);
+}
+
+bool _is_trigger = false;
+void *_timer_task;
+char *_state;
+
+bool off_motors(const char *param) {
+    // digitalWrite(PIN_RECOIL, LOW);
+    analogWrite(PIN_RUMBLE, 0);
+
+    _pixels.setPixelColor(0, _pixels.Color(0, 0, 255));
+    _pixels.show();
+
+    return false;
+}
+
+bool check_trigger(const char *state) {
+    int8_t trigger = digitalRead(PIN_TRIGGER);
+
+    if (trigger == LOW) {
+        LOGV("BANG !!!\n");
+        // digitalWrite(PIN_RECOIL, HIGH);
+
+        analogWrite(PIN_RUMBLE, 255);
+        _pixels.setPixelColor(0, _pixels.Color(255, 0, 0));
+        _pixels.show();
+        _timer.in(50, off_motors, NULL);
+
+        if (state == 0) {
+            _state = (char*)1;
+            _timer.in(300, check_trigger, _state);
+        } else if (state == (char*)1) {
+            _state = (char*)2;
+            _timer.every(150, check_trigger, _state);
+        }
+    } else {
+        _is_trigger = false;
+    }
+    return ((_state == (char*)2) && trigger == LOW);
+}
+
+void loop() {
+    int8_t trigger = digitalRead(PIN_TRIGGER);
+
+    if (trigger == LOW && !_is_trigger) {
+        _is_trigger = true;
+        _state = 0; // debounce
+        _timer.in(10, check_trigger, _state);
+    }
+    _timer.tick();
 }
