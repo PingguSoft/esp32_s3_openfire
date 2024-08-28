@@ -7,17 +7,79 @@
 #include "config.h"
 #include "debug.h"
 
+
+/*
+*****************************************************************************************
+* DATA TYPES
+*****************************************************************************************
+*/
 typedef struct {
     int x;
     int y;
 } ir_pos_t;
 
+typedef struct {
+    uint8_t pin;
+    uint8_t mode;
+} pin_info_t;
+
+typedef struct {
+    uint8_t pin;
+    uint8_t mode;
+    uint8_t state;
+    bool (*cb)(const char *param);
+} pin_sw_info_t;
+
+
+/*
+*****************************************************************************************
+* FUNCTION PREDEFINITION
+*****************************************************************************************
+*/
+bool recoil(const char *param);
+
+
+/*
+*****************************************************************************************
+* CONSTANTS
+*****************************************************************************************
+*/
+static const pin_info_t _tbl_ctl_pins[] = {
+    { PIN_IR_RESET,  OUTPUT },
+
+    { PIN_RUMBLE, OUTPUT },
+    { PIN_RECOIL, OUTPUT },
+};
+
+
+/*
+*****************************************************************************************
+* VARIABLES
+*****************************************************************************************
+*/
+static pin_sw_info_t _tbl_sw_pins[] = {
+    { PIN_BUTTON_B, INPUT_PULLUP, 0, NULL },
+    { PIN_TRIGGER,  INPUT_PULLUP, 0, recoil },
+
+    { PIN_JOY_ADC_X,     INPUT_PULLUP, 0, NULL },
+    { PIN_JOY_ADC_Y,     INPUT_PULLUP, 0, NULL },
+    { PIN_BUTTON_START,  INPUT_PULLUP, 0, NULL },
+    { PIN_BUTTON_SELECT, INPUT_PULLUP, 0, NULL },
+    { PIN_BUTTON_MODE,   INPUT_PULLUP, 0, NULL },
+    { PIN_BUTTON_A,      INPUT_PULLUP, 0, NULL },
+};
+
 static DFRobotIRPosition _ir;
 static ir_pos_t  _pos[4];
-
 static Adafruit_NeoPixel _pixels(1, PIN_LED_STRIP, NEO_GRB + NEO_KHZ800);
 static Timer<16, millis, const char *> _timer;
 
+
+/*
+*****************************************************************************************
+* FUNCTIONS
+*****************************************************************************************
+*/
 void ir_clk_init(int port, int mclk, uint32_t hz) {
     i2s_config_t i2s_config_dac = {
             .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX),
@@ -42,6 +104,23 @@ void ir_clk_init(int port, int mclk, uint32_t hz) {
     i2s_set_sample_rates((i2s_port_t)port, hz);
 }
 
+void init_pins(pin_info_t *tbl, int8_t len) {
+    for (int i = 0; i < len; i++) {
+        pinMode(tbl->pin, tbl->mode);
+        if (tbl->mode == OUTPUT) {
+            digitalWrite(tbl->pin, LOW);
+        }
+        tbl++;
+    }
+}
+
+void init_sw_pins(pin_sw_info_t *tbl, int8_t len) {
+    for (int i = 0; i < len; i++) {
+        pinMode(tbl->pin, tbl->mode);
+        tbl++;
+    }
+}
+
 void printResult(ir_pos_t *pos, int size) {
     int cnt = 0;
 
@@ -53,28 +132,6 @@ void printResult(ir_pos_t *pos, int size) {
     }
     if (cnt > 0)
         LOGV("------------------\n");
-}
-
-typedef struct {
-    uint8_t pin;
-    uint8_t mode;
-    uint8_t value;
-} pin_mode_t;
-
-const pin_mode_t _tbl_pins[] = {
-    { PIN_IR_RESET,  OUTPUT, LOW },
-
-    { PIN_RUMBLE, OUTPUT, LOW },
-    { PIN_RECOIL, OUTPUT, LOW },
-    { PIN_BUTTON_B, INPUT_PULLUP, HIGH },
-    { PIN_TRIGGER,  INPUT_PULLUP, HIGH },
-};
-
-
-bool print_message(const char *m) {
-  Serial.print("print_message: ");
-  Serial.println(m);
-  return true; // repeat? true
 }
 
 bool check_ir_camera(const char *m) {
@@ -95,12 +152,8 @@ void setup() {
     Serial.begin(115200);
     LOGV("Start !!!\n");
 
-    for (int i = 0; i < ARRAY_SIZE(_tbl_pins); i++) {
-        pinMode(_tbl_pins[i].pin, _tbl_pins[i].mode);
-        if (_tbl_pins[i].mode == OUTPUT) {
-            digitalWrite(_tbl_pins[i].pin, _tbl_pins[i].value);
-        }
-    }
+    init_pins((pin_info_t*)_tbl_ctl_pins, ARRAY_SIZE(_tbl_ctl_pins));
+    init_sw_pins(_tbl_sw_pins,  ARRAY_SIZE(_tbl_sw_pins));
 
     Wire.begin(PIN_IR_SDA, PIN_IR_SCL, 400000);
     ir_clk_init(0, 25000000, 48000);
@@ -116,52 +169,64 @@ void setup() {
     _timer.every(100, check_ir_camera, NULL);
 }
 
-bool _is_trigger = false;
-void *_timer_task;
-char *_state;
-
-bool off_motors(const char *param) {
-    // digitalWrite(PIN_RECOIL, LOW);
-    analogWrite(PIN_RUMBLE, 0);
-
-    _pixels.setPixelColor(0, _pixels.Color(0, 0, 255));
+bool recoil(const char *param) {
+    if (param) {
+        LOGV("BANG !!!\n");
+        analogWrite(PIN_RECOIL, 200);
+        analogWrite(PIN_RUMBLE, 255);
+        _pixels.setPixelColor(0, _pixels.Color(255, 0, 0));
+        _timer.in(50, recoil, NULL);
+    } else {
+        analogWrite(PIN_RECOIL, 0);
+        analogWrite(PIN_RUMBLE, 0);
+        _pixels.setPixelColor(0, _pixels.Color(0, 0, 255));
+    }
     _pixels.show();
 
     return false;
 }
 
-bool check_trigger(const char *state) {
-    int8_t trigger = digitalRead(PIN_TRIGGER);
+bool check_sw(const char *state) {
+    pin_sw_info_t *sw_info = (pin_sw_info_t*)state;
+    int8_t val = digitalRead(sw_info->pin);
 
-    if (trigger == LOW) {
-        LOGV("BANG !!!\n");
-        // digitalWrite(PIN_RECOIL, HIGH);
+    if (val == LOW) {
+        // LOGV("PIN:%d ON\n", sw_info->pin);
+        if (sw_info->cb) {
+            (*sw_info->cb)((const char *)sw_info);
+        }
 
-        analogWrite(PIN_RUMBLE, 255);
-        _pixels.setPixelColor(0, _pixels.Color(255, 0, 0));
-        _pixels.show();
-        _timer.in(50, off_motors, NULL);
-
-        if (state == 0) {
-            _state = (char*)1;
-            _timer.in(300, check_trigger, _state);
-        } else if (state == (char*)1) {
-            _state = (char*)2;
-            _timer.every(150, check_trigger, _state);
+        if (sw_info->state == 1) {
+            sw_info->state = 2;
+            _timer.in(300, check_sw, (char*)sw_info);
+        } else if (sw_info->state == 2) {
+            sw_info->state = 3;
+            _timer.every(150, check_sw, (char*)sw_info);
         }
     } else {
-        _is_trigger = false;
+        sw_info->state = 0;
     }
-    return ((_state == (char*)2) && trigger == LOW);
+    return ((sw_info->state == 3) && val == LOW);
+}
+
+void check_switches(pin_sw_info_t *sw, int8_t len) {
+    int8_t val;
+
+    for (int i = 0; i < len; i++) {
+        int8_t val = digitalRead(sw->pin);
+
+        if (val == LOW && sw->state == 0) {
+            // LOGV("PIN:%d Debounce\n", sw->pin);
+            sw->state = 1;
+            _timer.in(10, check_sw, (char*)sw);
+        }
+        sw++;
+    }
 }
 
 void loop() {
     int8_t trigger = digitalRead(PIN_TRIGGER);
 
-    if (trigger == LOW && !_is_trigger) {
-        _is_trigger = true;
-        _state = 0; // debounce
-        _timer.in(10, check_trigger, _state);
-    }
+    check_switches(_tbl_sw_pins,  ARRAY_SIZE(_tbl_sw_pins));
     _timer.tick();
 }
