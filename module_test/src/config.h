@@ -27,7 +27,7 @@
 
 #define PIN_LED_STRIP       48
 #define PIN_RUMBLE          11
-#define PIN_RECOIL          12
+#define PIN_SOLENOID        12
 
 #define PIN_BUTTON_B        13
 #define PIN_TRIGGER         14
