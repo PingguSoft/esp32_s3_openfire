@@ -58,24 +58,24 @@ bool GunHIDBLE::test(void *param) {
 }
 
 void GunHIDBLE::loop() {
-    int ch;
+    // int ch;
 
-    if (Serial.available()) {
-        ch = Serial.read();
+    // if (Serial.available()) {
+    //     ch = Serial.read();
 
-        switch (ch) {
-            case '1':
-                LOGV("1\n");
-                _bleCompositeHID->setBatteryLevel(80);
-                _tmr_handle = _timer->every(200, GunHIDBLE::test, NULL);
-                break;
+    //     switch (ch) {
+    //         case '1':
+    //             LOGV("1\n");
+    //             _bleCompositeHID->setBatteryLevel(80);
+    //             _tmr_handle = _timer->every(200, GunHIDBLE::test, NULL);
+    //             break;
 
-            case '2':
-                LOGV("2\n");
-                _timer->cancel(_tmr_handle);
-                _bleCompositeHID->setBatteryLevel(100);
-                break;
-        }
-    }
+    //         case '2':
+    //             LOGV("2\n");
+    //             _timer->cancel(_tmr_handle);
+    //             _bleCompositeHID->setBatteryLevel(100);
+    //             break;
+    //     }
+    // }
     _timer->tick();
 }

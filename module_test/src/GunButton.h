@@ -24,7 +24,7 @@ class GunButton {
         _auto_trg_delay     = auto_trg_delay;
         _auto_trg_rpt_delay = auto_trg_rpt_delay;
     }
-    void add_button(uint8_t gpio, uint8_t mode, void (*cb)(void *param) = NULL);
+    void add_button(uint8_t gpio, uint8_t mode, void (*cb)(void *param, uint8_t state) = NULL);
     void setup();
     void loop();
 
@@ -40,17 +40,19 @@ class GunButton {
     typedef struct pin_sw_info {
         uint8_t _pin;
         uint8_t _mode;
+        uint8_t _on;
         uint8_t _state;
         void   *_parent;
-        void (*_cb)(void *param);
-        pin_sw_info(uint8_t pin, uint8_t mode, void (*cb)(void *param))
+        void (*_cb)(void *param, uint8_t state);
+        pin_sw_info(uint8_t pin, uint8_t mode, void (*cb)(void *param, uint8_t state))
             : _pin(pin), _mode(mode), _cb(cb) {}
     } pin_sw_info_t;
 
-    static bool check_sw(void *state);
+    static bool check_sw(pin_sw_info_t *state);
+    static bool pulse_sw(pin_sw_info_t *state);
     void        check_buttons();
 
-    Timer<16> *_timer;
+    Timer<16, millis, pin_sw_info_t *> *_timer;
     uint16_t   _auto_trg_delay;
     uint16_t   _auto_trg_rpt_delay;
 

@@ -70,6 +70,39 @@ static GunFFB                   *_gunFFB = new GunFFB();
 * FUNCTIONS
 *****************************************************************************************
 */
+int debug_printf(const char *format, ...) {
+    Stream *stream;
+
+    if (_gunhid) {
+        stream = _gunhid->get_serial();
+    } else {
+        stream = &Serial0;
+    }
+
+    char    loc_buf[64];
+    char   *temp = loc_buf;
+    va_list arg;
+    va_list copy;
+    va_start(arg, format);
+    va_copy(copy, arg);
+    int len = vsnprintf(temp, sizeof(loc_buf), format, copy);
+    va_end(copy);
+    if (len < 0) {
+        va_end(arg);
+        return 0;
+    }
+    if (len >= (int)sizeof(loc_buf)) {  // comparation of same sign type for the compiler
+        temp = (char *)malloc(len + 1);
+        if (temp == NULL) {
+            va_end(arg);
+            return 0;
+        }
+        len = vsnprintf(temp, len + 1, format, arg);
+    }
+    va_end(arg);
+    return stream->write(temp, len);
+}
+
 void ir_clk_init(int port, int mclk, uint32_t hz) {
     i2s_config_t i2s_config_dac = {
         .mode                 = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX),
@@ -135,21 +168,20 @@ void init_pins(pin_info_t *tbl, int8_t len) {
     }
 }
 
-void cb_button(void *param) {
+void cb_button(void *param, uint8_t state) {
     pin_info_t *info = (pin_info_t*)param;
 
-    LOGV("pin:%d\n", info->pin);
-
+    LOGV("pin:%d state:%d\n", info->pin, state);
     switch (info->pin) {
         case PIN_TRIGGER:
-            if (_gunFFB)
+            if (_gunFFB && state == 1)
                 _gunFFB->trigger();
             break;
     }
 }
 
 void setup() {
-    Serial.begin(115200);
+    Serial0.begin(115200);
     LOGV("Start !!!\n");
 
     init_pins((pin_info_t *)_tbl_ctl_pins, ARRAY_SIZE(_tbl_ctl_pins));
@@ -177,9 +209,28 @@ void setup() {
     // _gunhid = new GunHIDBLE("OpenFIRE", "FIRECon", 0xF143, 0x1998);
     _gunhid->setup();
     _gunFFB->setup(PIN_SOLENOID, &_pixels, 0);
+
 }
 
 void loop() {
+    int ch;
+
+    if (_gunhid->get_serial()->available()) {
+        ch = _gunhid->get_serial()->read();
+
+        switch (ch) {
+            case '1':
+                LOGV("auto trigger disabled\n");
+                _gunBtn->set_auto_trigger(0, 0);
+                break;
+
+            case '2':
+                LOGV("auto trigger enabled\n");
+                _gunBtn->set_auto_trigger(300, 150);
+                break;
+        }
+    }
+
     _gunhid->loop();
     _gunBtn->loop();
     _gunFFB->loop();

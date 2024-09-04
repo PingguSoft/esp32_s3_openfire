@@ -23,8 +23,9 @@ class GunHID {
     }
     virtual void setup() {}
     virtual void loop() {}
-    virtual void report_mouse(int x, int y) {}
-    virtual void report_gamepad(int x, int y, uint8_t hat, uint8_t buttons) {}
+    virtual Stream *get_serial() { return &Serial0; }
+    void report_mouse(int x, int y) {}
+    void report_gamepad(int x, int y, uint8_t hat, uint8_t buttons) {}
 
    protected:
     std::string _devMfr;
@@ -47,6 +48,7 @@ class GunHIDBLE : public GunHID {
     void loop();
     void report_mouse(int x, int y);
     void report_gamepad(int x, int y, uint8_t hat, uint8_t buttons);
+    Stream *get_serial() { return &Serial0; }
 
    private:
     static bool test(void *param);
@@ -67,6 +69,8 @@ class GunHIDUSB : public GunHID {
     void loop();
     void report_mouse(int x, int y);
     void report_gamepad(int x, int y, uint8_t hat, uint8_t buttons);
+
+    Stream *get_serial();
 
    private:
     static bool test(void *param);
