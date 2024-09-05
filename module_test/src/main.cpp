@@ -3,13 +3,15 @@
 #include <Wire.h>
 #include <arduino-timer.h>
 #include <driver/i2s.h>
-
-#include "DFRobotIRPosition.h"
-#include "GunButton.h"
-#include "GunFFB.h"
-#include "GunHID.h"
 #include "config.h"
 #include "debug.h"
+#include "DFRobotIRPosition.h"
+#include "DFRobotIRPositionEx.h"
+#include "GunJoyButton.h"
+#include "GunFFB.h"
+#include "GunHID.h"
+#include "OpenFIRE_Diamond.h"
+#include "OpenFIRE_Perspective.h"
 
 /*
 *****************************************************************************************
@@ -38,11 +40,15 @@ typedef struct {
 *****************************************************************************************
 */
 static const pin_info_t _tbl_sw_pins[] = {
-    {PIN_BUTTON_B, INPUT_PULLUP},     {PIN_TRIGGER, INPUT_PULLUP},
+    {PIN_BUTTON_B, INPUT_PULLUP},
+    {PIN_TRIGGER, INPUT_PULLUP},
 
-    {PIN_JOY_ADC_X, INPUT_PULLUP},    {PIN_JOY_ADC_Y, INPUT_PULLUP},
-    {PIN_BUTTON_START, INPUT_PULLUP}, {PIN_BUTTON_SELECT, INPUT_PULLUP},
-    {PIN_BUTTON_MODE, INPUT_PULLUP},  {PIN_BUTTON_A, INPUT_PULLUP},
+    {PIN_JOY_ADC_X, ANALOG},
+    {PIN_JOY_ADC_Y, ANALOG},
+    {PIN_BUTTON_START, INPUT_PULLUP},
+    {PIN_BUTTON_SELECT, INPUT_PULLUP},
+    {PIN_BUTTON_MODE, INPUT_PULLUP},
+    {PIN_BUTTON_A, INPUT_PULLUP},
 };
 
 static const pin_info_t _tbl_ctl_pins[] = {
@@ -57,13 +63,18 @@ static const pin_info_t _tbl_ctl_pins[] = {
 * VARIABLES
 *****************************************************************************************
 */
-static DFRobotIRPosition         _ir;
+// static DFRobotIRPosition         _ir;
+static DFRobotIRPositionEx      *_ir;
 static ir_pos_t                  _pos[4];
 static Adafruit_NeoPixel         _pixels(1, PIN_LED_STRIP, NEO_GRB + NEO_KHZ800);
 static Timer<16, millis, void *> _timer;
-static GunHID                   *_gunhid;
-static GunButton                *_gunBtn = new GunButton();
+static GunHID                   *_gunHID;
+static GunJoyButton             *_gunJoy = new GunJoyButton();
 static GunFFB                   *_gunFFB = new GunFFB();
+static OpenFIRE_Diamond          _diamond;
+static OpenFIRE_Perspective      _perspective;
+
+static DFRobotIRPositionEx::Sensitivity_e _irSensitivity = DFRobotIRPositionEx::Sensitivity_Default;
 
 /*
 *****************************************************************************************
@@ -73,8 +84,8 @@ static GunFFB                   *_gunFFB = new GunFFB();
 int debug_printf(const char *format, ...) {
     Stream *stream;
 
-    if (_gunhid) {
-        stream = _gunhid->get_serial();
+    if (_gunHID) {
+        stream = _gunHID->get_serial();
     } else {
         stream = &Serial0;
     }
@@ -135,26 +146,45 @@ void printResult(ir_pos_t *pos, int size) {
     int cnt = 0;
 
     for (int i = 0; i < size; i++) {
-        if (pos[i].x != 1023 && pos[i].y != 1023) {
-            LOGV("%2d: %4d, %4d\n", i, pos[i].x, pos[i].y);
-            cnt++;
-        }
+        LOGV("%2d: %4d, %4d\n", i, pos[i].x, pos[i].y);
     }
-    if (cnt > 0)
-        LOGV("------------------\n");
+    LOGV("------------------\n");
 }
 
 bool check_ir_camera(const char *m) {
-    _ir.requestPosition();
-    if (_ir.available()) {
-        for (int i = 0; i < 4; i++) {
-            _pos[i].x = _ir.readX(i);
-            _pos[i].y = _ir.readY(i);
-        }
-        printResult(_pos, 4);
-    } else {
-        LOGE("Device not available!\n");
+    int error = _ir->basicAtomic(DFRobotIRPositionEx::Retry_2);
+    if(error == DFRobotIRPositionEx::Error_Success) {
+        _diamond.begin(_ir->xPositions(), _ir->yPositions(), _ir->seen());
+        _perspective.warp(_diamond.X(0), _diamond.Y(0),
+                            _diamond.X(1), _diamond.Y(1),
+                            _diamond.X(2), _diamond.Y(2),
+                            _diamond.X(3), _diamond.Y(3),
+                            res_x / 2, 0, 0,
+                            res_y / 2, res_x / 2,
+                            res_y, res_x, res_y / 2);
+
+
+        // const int *px = _ir->xPositions();
+        // const int *py = _ir->yPositions();
+        // const int flag = _ir->seen();
+
+        // for (int i = 0; i < 4; i++) {
+        //     _pos[i].x = *px++;
+        //     _pos[i].y = *py++;
+        // }
+        // printResult(_pos, 4);
     }
+
+    // _ir.requestPosition();
+    // if (_ir.available()) {
+    //     for (int i = 0; i < 4; i++) {
+    //         _pos[i].x = _ir.readX(i);
+    //         _pos[i].y = _ir.readY(i);
+    //     }
+    //     printResult(_pos, 4);
+    // } else {
+    //     LOGE("Device not available!\n");
+    // }
     return true;
 }
 
@@ -168,13 +198,30 @@ void init_pins(pin_info_t *tbl, int8_t len) {
     }
 }
 
-void cb_button(void *param, uint8_t state) {
-    pin_info_t *info = (pin_info_t*)param;
+void cb_button(GunJoyButton::btn_cb_info_t *cb) {
+    static uint8_t buttons = 0;
+    static int8_t x = 0;
+    static int8_t y = 0;
 
-    LOGV("pin:%d state:%d\n", info->pin, state);
-    switch (info->pin) {
+    if (cb->mode == ANALOG) {
+        if (cb->pin == PIN_JOY_ADC_X) {
+            x = cb->val;
+        } else if (cb->pin == PIN_JOY_ADC_Y) {
+            y = cb->val;
+        }
+    } else {
+        if (cb->val)
+            buttons |= (1 << cb->no);
+        else
+            buttons &= ~(1 << cb->no);
+
+        LOGV("no:%2d, pin:%2d, val:%4d, [x:%4d, y:%4d, buttons:%2x]\n", cb->no, cb->pin, cb->val, x, y, buttons);
+    }
+    _gunHID->report_gamepad(x, y, 0, buttons);
+
+    switch (cb->pin) {
         case PIN_TRIGGER:
-            if (_gunFFB && state == 1)
+            if (_gunFFB && cb->val == 1)
                 _gunFFB->trigger();
             break;
     }
@@ -188,7 +235,10 @@ void setup() {
     Wire.begin(PIN_IR_SDA, PIN_IR_SCL, 400000);
     ir_clk_init(0, 25000000, 48000);
     digitalWrite(PIN_IR_RESET, HIGH);
-    // _ir.begin();
+
+
+    _ir = new DFRobotIRPositionEx(Wire);
+    // _ir->begin(400000, DFRobotIRPositionEx::DataFormat_Basic, _irSensitivity);
     // _timer.every(100, check_ir_camera, NULL);
 
     _pixels.begin();
@@ -198,41 +248,41 @@ void setup() {
     _pixels.show();
 
     //
-    //
-    //
+    uint16_t auto_trg_delay = 300;
+    uint16_t auto_trg_rpt_delay = 150;
     for (int i = 0; i < ARRAY_SIZE(_tbl_sw_pins); i++) {
-        _gunBtn->add_button(_tbl_sw_pins[i].pin, _tbl_sw_pins[i].mode, cb_button);
+        _gunJoy->add_button(i, _tbl_sw_pins[i].pin, _tbl_sw_pins[i].mode, cb_button);
     }
-    _gunBtn->setup();
+    _gunJoy->setup(auto_trg_delay, auto_trg_rpt_delay);
 
-    _gunhid = new GunHIDUSB("OpenFIRE", "FIRECon", 0xF143, 0x1998);
-    // _gunhid = new GunHIDBLE("OpenFIRE", "FIRECon", 0xF143, 0x1998);
-    _gunhid->setup();
-    _gunFFB->setup(PIN_SOLENOID, &_pixels, 0);
-
+    // _gunHID = new GunHIDBLE("OpenFIRE", "FIRECon", 0xF143, 0x1998);
+    _gunHID = new GunHIDUSB("OpenFIRE", "FIRECon", 0xF143, 0x1998);
+    _gunHID->setup();
+    _gunFFB->setup(PIN_SOLENOID, auto_trg_rpt_delay / 3, &_pixels, 0);
+    // _gunFFB->setup(PIN_RUMBLE, auto_trg_rpt_delay / 3, &_pixels, 0);
 }
 
 void loop() {
     int ch;
 
-    if (_gunhid->get_serial()->available()) {
-        ch = _gunhid->get_serial()->read();
+    if (_gunHID->get_serial()->available()) {
+        ch = _gunHID->get_serial()->read();
 
         switch (ch) {
             case '1':
                 LOGV("auto trigger disabled\n");
-                _gunBtn->set_auto_trigger(0, 0);
+                _gunJoy->set_auto_trigger(0, 0);
                 break;
 
             case '2':
                 LOGV("auto trigger enabled\n");
-                _gunBtn->set_auto_trigger(300, 150);
+                _gunJoy->set_auto_trigger(300, 150);
                 break;
         }
     }
 
-    _gunhid->loop();
-    _gunBtn->loop();
+    _gunHID->loop();
+    _gunJoy->loop();
     _gunFFB->loop();
     _timer.tick();
 }

@@ -9,7 +9,6 @@
 #include <Adafruit_NeoPixel.h>
 #include <arduino-timer.h>
 
-
 /*
 *****************************************************************************************
 * GunFFB
@@ -17,20 +16,17 @@
 */
 class GunFFB {
    public:
-    GunFFB() { set_power(200, 50); }
+    GunFFB() { set_power(200); }
 
-    void setup(uint8_t pin, Adafruit_NeoPixel *pixel = NULL, uint8_t pos = 0);
+    void setup(uint8_t pin, uint16_t hold_delay, Adafruit_NeoPixel *pixel = NULL, uint8_t pos = 0);
     void loop();
     void trigger();
-    void set_power(uint8_t pwm, uint16_t hold_delay) {
-        _pwm        = pwm;
-        _hold_delay = hold_delay;
-    }
+    void set_power(uint8_t pwm) { _pwm = pwm; }
 
    protected:
     static bool recoil(void *param);
 
-    Timer<2> *_timer;
+    Timer<1> *_timer;
     uint8_t   _gpio_pin;
     uint8_t   _pwm;
     bool      _on;

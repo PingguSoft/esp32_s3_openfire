@@ -1,20 +1,16 @@
-#include "GunFFB.h"
-
 #include "config.h"
 #include "debug.h"
+#include "GunFFB.h"
 
-
-void GunFFB::setup(uint8_t pin, Adafruit_NeoPixel *pixel, uint8_t pos) {
-    _gpio_pin = pin;
-    set_power(200, 50);
-
-    _pixel = pixel;
-    _pos   = pos;
-
+void GunFFB::setup(uint8_t pin, uint16_t hold_delay, Adafruit_NeoPixel *pixel, uint8_t pos) {
+    _gpio_pin   = pin;
+    _pixel      = pixel;
+    _pos        = pos;
+    _hold_delay = hold_delay;
+    _on         = false;
+    _timer      = new Timer<1>();
     pinMode(pin, OUTPUT);
     digitalWrite(pin, LOW);
-    _on    = false;
-    _timer = new Timer<2>();
 }
 
 bool GunFFB::recoil(void *param) {
@@ -23,7 +19,6 @@ bool GunFFB::recoil(void *param) {
     uint32_t color;
 
     if (!p->_on) {
-        LOGV("BANG !!!\n");
         pwm    = p->_pwm;
         color  = Adafruit_NeoPixel::Color(255, 0, 0);
         p->_on = true;

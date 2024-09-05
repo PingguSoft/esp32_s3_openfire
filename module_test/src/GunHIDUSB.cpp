@@ -33,9 +33,11 @@ static void usbEventCallback(void *arg, esp_event_base_t event_base, int32_t eve
         switch (event_id) {
             case ARDUINO_USB_CDC_CONNECTED_EVENT:
                 _is_serial_connected = true;
+                LOGV("Connected !!!\n");
                 break;
             case ARDUINO_USB_CDC_DISCONNECTED_EVENT:
                 _is_serial_connected = false;
+                LOGV("Disconnected !!!\n");
                 break;
             case ARDUINO_USB_CDC_LINE_STATE_EVENT:
                 break;
@@ -64,7 +66,7 @@ static void usbEventCallback(void *arg, esp_event_base_t event_base, int32_t eve
 }
 
 void GunHIDUSB::setup() {
-    // _keyboard = new USBHIDKeyboard();
+    _keyboard = new USBHIDKeyboard();
     _mouse     = new USBHIDMouse();
     _gamepad   = new USBHIDGamepadCust();
     _usbserial = new USBCDC();
@@ -74,7 +76,7 @@ void GunHIDUSB::setup() {
     _usbserial->enableReboot(true);
 
     _mouse->begin();
-    // _keyboard->begin();
+    _keyboard->begin();
     _gamepad->begin();
 
     USB.PID(_pid);
@@ -134,4 +136,5 @@ void GunHIDUSB::loop() {
 
 Stream *GunHIDUSB::get_serial() {
     return _is_serial_connected ? (Stream*)_usbserial : &Serial0;
+    // return (Stream*)&Serial0;
 }
