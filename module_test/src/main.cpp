@@ -223,6 +223,12 @@ void cb_button(GunJoyButton::btn_cb_info_t *cb) {
         case PIN_TRIGGER:
             if (_gunFFB && cb->val == 1)
                 _gunFFB->trigger();
+
+            if (cb->val == 1) {
+                _gunHID->report_mouse(300, 300, 0);
+            } else {
+                _gunHID->report_mouse(32768/2, 32768/2, 0);
+            }
             break;
     }
 }

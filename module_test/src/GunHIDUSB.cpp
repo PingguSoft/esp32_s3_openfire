@@ -2,44 +2,33 @@
 #include "USB.h"
 #include "USBHIDGamepadCust.h"
 #include "USBHIDKeyboard.h"
-#include "USBHIDMouse.h"
+#include "USBHIDMouseCust.h"
 #include "debug.h"
 
 static USBHIDKeyboard    *_keyboard;
-static USBHIDMouse       *_mouse;
+static USBHIDMouseCust   *_mouse;
 static USBHIDGamepadCust *_gamepad;
 static USBCDC            *_usbserial;
 static bool               _is_serial_connected = false;
 
 static void usbEventCallback(void *arg, esp_event_base_t event_base, int32_t event_id,
                              void *event_data) {
-    if (event_base == ARDUINO_USB_EVENTS) {
-        arduino_usb_event_data_t *data = (arduino_usb_event_data_t *)event_data;
-        switch (event_id) {
-            case ARDUINO_USB_STARTED_EVENT:
-                break;
-            case ARDUINO_USB_STOPPED_EVENT:
-                break;
-            case ARDUINO_USB_SUSPEND_EVENT:
-                break;
-            case ARDUINO_USB_RESUME_EVENT:
-                break;
-
-            default:
-                break;
-        }
-    } else if (event_base == ARDUINO_USB_CDC_EVENTS) {
+    if (event_base == ARDUINO_USB_CDC_EVENTS) {
         arduino_usb_cdc_event_data_t *data = (arduino_usb_cdc_event_data_t *)event_data;
         switch (event_id) {
             case ARDUINO_USB_CDC_CONNECTED_EVENT:
                 _is_serial_connected = true;
-                LOGV("Connected !!!\n");
+                // LOGV("Connected !!!\n");
                 break;
             case ARDUINO_USB_CDC_DISCONNECTED_EVENT:
                 _is_serial_connected = false;
-                LOGV("Disconnected !!!\n");
+                // LOGV("Disconnected !!!\n");
                 break;
             case ARDUINO_USB_CDC_LINE_STATE_EVENT:
+                LOGV("CDC LINE STATE: dtr: %u, rts: %u\n", data->line_state.dtr, data->line_state.rts);
+                // if (data->line_state.dtr)
+                //     usb_persist_restart(RESTART_BOOTLOADER);
+                //     esp_restart();
                 break;
             case ARDUINO_USB_CDC_LINE_CODING_EVENT:
                 break;
@@ -51,23 +40,12 @@ static void usbEventCallback(void *arg, esp_event_base_t event_base, int32_t eve
             default:
                 break;
         }
-    } else if (event_base == ARDUINO_USB_HID_EVENTS) {
-        arduino_usb_hid_event_data_t *data = (arduino_usb_hid_event_data_t *)event_data;
-        switch (event_id) {
-            case ARDUINO_USB_HID_SET_PROTOCOL_EVENT:
-                break;
-            case ARDUINO_USB_HID_SET_IDLE_EVENT:
-                break;
-
-            default:
-                break;
-        }
     }
 }
 
 void GunHIDUSB::setup() {
     _keyboard = new USBHIDKeyboard();
-    _mouse     = new USBHIDMouse();
+    _mouse     = new USBHIDMouseCust();
     _gamepad   = new USBHIDGamepadCust();
     _usbserial = new USBCDC();
 
@@ -92,6 +70,10 @@ void GunHIDUSB::setup() {
 
 void GunHIDUSB::report_gamepad(int x, int y, uint8_t hat, uint8_t buttons) {
     _gamepad->send(x, y, hat, buttons);
+}
+
+void GunHIDUSB::report_mouse(int x, int y, uint8_t buttons) {
+    _mouse->report(x, y, buttons);
 }
 
 bool GunHIDUSB::test(void *param) {

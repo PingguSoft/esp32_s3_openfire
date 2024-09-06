@@ -89,7 +89,9 @@ void USBHIDGamepadCust::end() {
 
 bool USBHIDGamepadCust::write() {
     hid_gamepad_report_cust_t report = {.x = _x, .y = _y, .hat = _hat, .buttons = _buttons};
-    return hid.SendReport(HID_REPORT_ID_GAMEPAD, &report, sizeof(report));
+    if (hid.ready())
+        return hid.SendReport(HID_REPORT_ID_GAMEPAD, &report, sizeof(report));
+    return false;
 }
 
 bool USBHIDGamepadCust::leftStick(int8_t x, int8_t y) {
