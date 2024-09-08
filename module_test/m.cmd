@@ -1,0 +1,1 @@
+pio device monitor --environment ircam_test

@@ -39,7 +39,7 @@ constexpr unsigned long DFRIRdata_IICdelay = 10;
 // maximum valid Y position
 constexpr int DFRIRdata_MaxY = 767;
 
-DFRobotIRPositionEx::DFRobotIRPositionEx(TwoWire& _wire) : wire(_wire), seenFlags(0)
+DFRobotIRPositionEx::DFRobotIRPositionEx(TwoWire& _wire) : wire(_wire), seenFlags(0), seenCnt(0)
 {
 }
 
@@ -196,6 +196,7 @@ void DFRobotIRPositionEx::unpackBasicFrame(unsigned int posData)
 void DFRobotIRPositionEx::unpackBasicFrameSeen(unsigned int posData)
 {
     seenFlags = 0;
+    seenCnt = 0;
     BasicFrame_t& frame = positionData[posData].frame.format.rawBasic[0];
     int high = frame.high;
     int y = (int)frame.y1low | ((high & 0xC0) << 2);
@@ -203,12 +204,14 @@ void DFRobotIRPositionEx::unpackBasicFrameSeen(unsigned int posData)
         positionY[0] = y;
         positionX[0] = (int)frame.x1low | ((high & 0x30) << 4);
         seenFlags |= 0x01;
+        seenCnt++;
     }
     y = (int)frame.y2low | ((high & 0x0C) << 6);
     if(y <= DFRIRdata_MaxY) {
         positionY[1] = y;
         positionX[1] = (int)frame.x2low | ((high & 0x03) << 8);
         seenFlags |= 0x02;
+        seenCnt++;
     }
 
     frame = positionData[posData].frame.format.rawBasic[1];
@@ -218,12 +221,14 @@ void DFRobotIRPositionEx::unpackBasicFrameSeen(unsigned int posData)
         positionY[2] = y;
         positionX[2] = (int)frame.x1low | ((high & 0x30) << 4);
         seenFlags |= 0x04;
+        seenCnt++;
     }
     y = (int)frame.y2low | ((high & 0x0C) << 6);
     if(y <= DFRIRdata_MaxY) {
         positionY[3] = y;
         positionX[3] = (int)frame.x2low | ((high & 0x03) << 8);
         seenFlags |= 0x08;
+        seenCnt++;
     }
 }
 
@@ -231,7 +236,7 @@ int DFRobotIRPositionEx::basicAtomic(DFRobotIRPositionEx::Retry_e retry)
 {
     // initial index for positiondata[1]
     unsigned int index = 0;
-    
+
     // initial read in positiondata[0]
     requestPositionBasic();
     if(!readPosition(positionData[0], DFRIRdata_LengthBasic)) {
@@ -255,7 +260,7 @@ int DFRobotIRPositionEx::basicAtomic(DFRobotIRPositionEx::Retry_e retry)
             return Error_Success;
         }
     }
-    
+
     if(retry & 1) {
         unpackBasicFrameSeen(index);
         return Error_SuccessMismatch;
@@ -277,6 +282,7 @@ void DFRobotIRPositionEx::unpackExtendedFrame(unsigned int posData)
 void DFRobotIRPositionEx::unpackExtendedFrameSeen(unsigned int posData)
 {
     seenFlags = 0;
+    seenCnt = 0;
     for(int i = 0; i < 4; ++i) {
         ExtendedFrame_t& frame = positionData[posData].frame.format.rawExtended[i];
         int y = (int)frame.yLow | ((int)(frame.xyHighSize & 0xC0U) << 2);
@@ -285,6 +291,7 @@ void DFRobotIRPositionEx::unpackExtendedFrameSeen(unsigned int posData)
             positionX[i] = (int)frame.xLow | ((int)(frame.xyHighSize & 0x30U) << 4);
             unpackedSizes[i] = frame.xyHighSize & 0xF;
             seenFlags |= 1 << i;
+            seenCnt++;
         }
     }
 }
@@ -293,7 +300,7 @@ int DFRobotIRPositionEx::extendedAtomic(DFRobotIRPositionEx::Retry_e retry)
 {
     // initial index for positiondata[1]
     unsigned int index = 0;
-    
+
     // initial read in positiondata[0]
     requestPositionExtended();
     if(!readPosition(positionData[0], DFRIRdata_LengthExtended)) {

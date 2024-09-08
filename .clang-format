@@ -7,10 +7,11 @@ AlignConsecutiveDeclarations: 'true'
 AlignEscapedNewlines: Left
 AlignOperands: 'true'
 AlignTrailingComments: 'true'
+AllowShortBlocksOnASingleLine: 'false'
 AllowShortCaseLabelsOnASingleLine: 'false'
 AllowShortFunctionsOnASingleLine: InlineOnly
 AllowShortIfStatementsOnASingleLine: Never
-ColumnLimit: '100'
+ColumnLimit: '120'
 DerivePointerAlignment: 'true'
 IncludeBlocks: Regroup
 IndentCaseLabels: 'true'

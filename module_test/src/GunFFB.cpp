@@ -13,7 +13,7 @@ void GunFFB::setup(uint8_t pin, uint16_t hold_delay, Adafruit_NeoPixel *pixel, u
     digitalWrite(pin, LOW);
 }
 
-bool GunFFB::recoil(void *param) {
+bool GunFFB::timer_recoil_task(void *param) {
     GunFFB  *p = (GunFFB *)param;
     uint8_t  pwm;
     uint32_t color;
@@ -22,7 +22,7 @@ bool GunFFB::recoil(void *param) {
         pwm    = p->_pwm;
         color  = Adafruit_NeoPixel::Color(255, 0, 0);
         p->_on = true;
-        p->_timer->in(p->_hold_delay, GunFFB::recoil, (void *)p);
+        p->_timer->in(p->_hold_delay, GunFFB::timer_recoil_task, (void *)p);
     } else {
         pwm    = 0;
         color  = Adafruit_NeoPixel::Color(0, 0, 255);
@@ -39,7 +39,7 @@ bool GunFFB::recoil(void *param) {
 
 void GunFFB::trigger() {
     _on = false;
-    GunFFB::recoil(this);
+    GunFFB::timer_recoil_task(this);
 }
 
 void GunFFB::loop() {

@@ -24,7 +24,7 @@ class GunFFB {
     void set_power(uint8_t pwm) { _pwm = pwm; }
 
    protected:
-    static bool recoil(void *param);
+    static bool timer_recoil_task(void *param);
 
     Timer<1> *_timer;
     uint8_t   _gpio_pin;

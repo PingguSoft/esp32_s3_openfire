@@ -16,9 +16,10 @@
 
 #include <stdint.h>
 #include "OpenFIREConst.h"
+#include "OpenFIRE_Layout.h"
 
-class OpenFIRE_Square {
-  
+class OpenFIRE_Square : public OpenFIRE_Layout {
+
     int positionXX[4];   ///< position x.
     int positionYY[4];   ///< position y.
 
@@ -57,13 +58,13 @@ public:
 
     /// @brief Main function to calculate X, Y, and H
     void begin(const int* px, const int* py, unsigned int seen);
-    
+
     int X(int index) const { return FinalX[index]; }
     int Y(int index) const { return FinalY[index]; }
     unsigned int testSee(int index) const { return see[index]; }
     int testMedianX() const { return medianX; }
     int testMedianY() const { return medianY; }
-    
+
     /// @brief Height
     float H() const { return height; }
 
@@ -72,7 +73,7 @@ public:
 
     /// @brief Angle
     float Ang() const { return angle; }
-    
+
     /// @brief Bit mask of positions the camera saw
     unsigned int seen() const { return seenFlags; }
 };

@@ -21,18 +21,25 @@ class GunHID {
         _vid     = vid;
         _pid     = pid;
     }
-    virtual void setup() {}
-    virtual void loop() {}
+    virtual void    setup() {}
     virtual Stream *get_serial() { return &Serial0; }
-    virtual void report_mouse(int x, int y, uint8_t buttons) {}
-    virtual void report_gamepad(int x, int y, uint8_t hat, uint8_t buttons) {}
+    virtual void    report_mouse(int x, int y, uint8_t buttons) {}
+    virtual void    report_gamepad(int x, int y, uint8_t hat, uint8_t buttons) {}
+
+    static int mouse_max_x() { return 32767; }
+    static int mouse_max_y() { return 32767; }
+
+    int get_mouse_x() { return _mouse_x; }
+    int get_mouse_y() { return _mouse_y; }
 
    protected:
     std::string _devMfr;
     std::string _devName;
     uint16_t    _vid;
     uint16_t    _pid;
-    Timer<2>   *_timer;
+    int         _mouse_x;
+    int         _mouse_y;
+    uint8_t     _mouse_buttons;
 };
 
 /*
@@ -44,16 +51,12 @@ class GunHIDBLE : public GunHID {
    public:
     GunHIDBLE(std::string devMfr, std::string devName, uint16_t vid = 0, uint16_t pid = 0)
         : GunHID(devMfr, devName, vid, pid) {}
-    void setup();
-    void loop();
-    void report_mouse(int x, int y, uint8_t buttons);
-    void report_gamepad(int x, int y, uint8_t hat, uint8_t buttons) {}
+    void    setup();
+    void    report_mouse(int x, int y, uint8_t buttons);
+    void    report_gamepad(int x, int y, uint8_t hat, uint8_t buttons) {}
     Stream *get_serial() { return &Serial0; }
 
    private:
-    static bool test(void *param);
-
-    void *_tmr_handle = NULL;
 };
 
 /*
@@ -66,16 +69,12 @@ class GunHIDUSB : public GunHID {
     GunHIDUSB(std::string devMfr, std::string devName, uint16_t vid, uint16_t pid)
         : GunHID(devMfr, devName, vid, pid) {}
     void setup();
-    void loop();
     void report_mouse(int x, int y, uint8_t buttons);
     void report_gamepad(int x, int y, uint8_t hat, uint8_t buttons);
 
     Stream *get_serial();
 
    private:
-    static bool test(void *param);
-
-    void *_tmr_handle = NULL;
 };
 
 #endif

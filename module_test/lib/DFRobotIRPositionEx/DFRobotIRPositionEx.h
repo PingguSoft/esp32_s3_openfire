@@ -80,8 +80,8 @@ class DFRobotIRPositionEx {
                 BasicFrame_t rawBasic[2];       ///< 2 raw basic frames.
             } __attribute__ ((packed)) format;
         } __attribute__ ((packed)) frame;
-    }__attribute__ ((packed)) PositionData_t;  
- 
+    }__attribute__ ((packed)) PositionData_t;
+
     /*!
     * @brief Write two bytes into the sensor to initialize and send data.
     *
@@ -129,12 +129,12 @@ class DFRobotIRPositionEx {
     * @brief Unpacked X positions.
     */
     int positionX[4];
-    
+
     /*!
     * @brief Unpacked Y positions.
     */
     int positionY[4];
-    
+
     /*!
     * @brief Unpacked sizes (when extended data format is used).
     */
@@ -145,8 +145,10 @@ class DFRobotIRPositionEx {
     */
     unsigned int seenFlags;
 
+    unsigned int seenCnt;
+
 public:
-  
+
     /*!
     * @brief Data format
     */
@@ -191,17 +193,17 @@ public:
         Retry_2 = 4,    ///< 2 retries, return Error_DataMismatch if mismatch
         Retry_2s = 5    ///< 2 retries, if mismatch then use last frame and return Error_SuccessMismatch
     };
-    
+
     /*!
     * @brief Constructor
     */
     DFRobotIRPositionEx(TwoWire& wire);
-  
+
     /*!
     * @brief Destructor
     */
     ~DFRobotIRPositionEx();
-  
+
     /*!
     * @brief Initialize the sensor.
     * @param[in] clock IIC clock rate. Defaults to 400kHz. Works up to at least 1MHz.
@@ -276,7 +278,7 @@ public:
     * this uses a workaround. The position data is read twice and compared. If it is the same then the
     * positions are updated. 2 retries will be a maximum of 4 readings and should guarentee success.
     * @param[in] retries Number of extra times to retry getting and matching the position.
-    * @return An error code from Errors_e. 
+    * @return An error code from Errors_e.
     */
     int basicAtomic(DFRobotIRPositionEx::Retry_e retry = DFRobotIRPositionEx::Retry_1s);
 
@@ -286,7 +288,7 @@ public:
     * this uses a workaround. The position data is read twice and compared. If it is the same then the
     * positions are updated. 2 retries will be a maximum of 4 readings and should guarentee success.
     * @param[in] retries Number of extra times to retry getting and matching the position.
-    * @return An error code from Errors_e. 
+    * @return An error code from Errors_e.
     */
     int extendedAtomic(DFRobotIRPositionEx::Retry_e retries = DFRobotIRPositionEx::Retry_1s);
 
@@ -344,6 +346,8 @@ public:
     * @return Seen flags.
     */
     unsigned int seen() const { return seenFlags; }
+
+    unsigned int avail() const { return seenCnt; }
 };
 
 #endif // DFRobotIRPositionEx_h
