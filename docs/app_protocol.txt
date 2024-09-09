@@ -1,0 +1,714 @@
+--- Terminal on COM4 | 115200 8-N-1
+--- Available filters and text transformations: colorize, debug, default, direct, esp32_exception_decoder, hexlify, log2file, nocontrol, printable, send_on_enter, time
+--- More details at https://bit.ly/pio-monitor-filters
+--- Quit: Ctrl+C | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x1 (POWERON),boot:0x8 (SPI_FAST_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce3808,len:0x44c
+load:0x403c9700,len:0xbd8
+load:0x403cc700,len:0x2a80
+entry 0x403c98d0
+[   166][V][                      main.cpp:   299]                          setup(): Start !!!
+[   172][V][               GunSettings.cpp:    73]                           load(): loaded
+[   173][V][              GunJoyButton.cpp:    86]                          setup(): setup !!!
+[   184][V][                 GunHIDUSB.cpp:    72]                          setup(): setup !!!
+[   595][V][                 GunHIDUSB.cpp:    36]               usbEventCallback(): CDC LINE CODING: bit_rate: 115200, data_bits: 8, stop_bits: 0, parity: 0
+[  4666][V][                 GunHIDUSB.cpp:    36]               usbEventCallback(): CDC LINE CODING: bit_rate: 9600, data_bits: 8, stop_bits: 0, parity: 0
+[  4679][V][                 GunHIDUSB.cpp:    27]               usbEventCallback(): CDC LINE STATE: dtr: 1, rts: 0
+58 [X]
+50 [P]
+[  4705][V][               GunSettings.cpp:    96]                     onCallback(): docked mode
+58 [X]
+6C [l]
+69 [i]
+[  4706][V][               GunSettings.cpp:   149]                     onCallback(): usb PID
+58 [X]
+6C [l]
+62 [b]
+[  4717][V][               GunSettings.cpp:   103]                     onCallback(): toggles
+58 [X]
+6C [l]
+73 [s]
+[  4728][V][               GunSettings.cpp:   140]                     onCallback(): settings
+58 [X]
+6C [l]
+50 [P]
+30 [0]
+[  4739][V][               GunSettings.cpp:   160]                     onCallback(): profile : 0
+58 [X]
+6C [l]
+50 [P]
+31 [1]
+[  4750][V][               GunSettings.cpp:   160]                     onCallback(): profile : 1
+58 [X]
+6C [l]
+50 [P]
+32 [2]
+[  4761][V][               GunSettings.cpp:   160]                     onCallback(): profile : 2
+58 [X]
+6C [l]
+50 [P]
+33 [3]
+[  4772][V][               GunSettings.cpp:   160]                     onCallback(): profile : 3
+2E [.]
+2E [.]
+2E [.]
+2E [.]
+58 [X]
+6D [m]
+58 [X]
+6D [m]
+2E [.]
+30 [0]
+2E [.]
+30 [0]
+2E [.]
+30 [0]
+58 [X]
+[ 27392][V][               GunSettings.cpp:   201]                     onCallback(): [6] 0.0.0
+[ 27392][V][               GunSettings.cpp:   207]                     onCallback(): token:0
+[ 27402][V][               GunSettings.cpp:   207]                     onCallback(): token:0
+[ 27413][V][               GunSettings.cpp:   207]                     onCallback(): token:0
+6D [m]
+2E [.]
+30 [0]
+2E [.]
+31 [1]
+2E [.]
+31 [1]
+58 [X]
+[ 29392][V][               GunSettings.cpp:   201]                     onCallback(): [6] 0.1.1
+[ 29392][V][               GunSettings.cpp:   207]                     onCallback(): token:0
+[ 29402][V][               GunSettings.cpp:   207]                     onCallback(): token:1
+[ 29413][V][               GunSettings.cpp:   207]                     onCallback(): token:1
+6D [m]
+2E [.]
+30 [0]
+2E [.]
+32 [2]
+2E [.]
+31 [1]
+58 [X]
+[ 31392][V][               GunSettings.cpp:   201]                     onCallback(): [6] 0.2.1
+[ 31393][V][               GunSettings.cpp:   207]                     onCallback(): token:0
+[ 31403][V][               GunSettings.cpp:   207]                     onCallback(): token:2
+[ 31413][V][               GunSettings.cpp:   207]                     onCallback(): token:1
+6D [m]
+2E [.]
+30 [0]
+2E [.]
+33 [3]
+2E [.]
+31 [1]
+58 [X]
+[ 33393][V][               GunSettings.cpp:   201]                     onCallback(): [6] 0.3.1
+[ 33393][V][               GunSettings.cpp:   207]                     onCallback(): token:0
+[ 33403][V][               GunSettings.cpp:   207]                     onCallback(): token:3
+[ 33414][V][               GunSettings.cpp:   207]                     onCallback(): token:1
+6D [m]
+2E [.]
+30 [0]
+2E [.]
+34 [4]
+2E [.]
+30 [0]
+58 [X]
+[ 35394][V][               GunSettings.cpp:   201]                     onCallback(): [6] 0.4.0
+[ 35394][V][               GunSettings.cpp:   207]                     onCallback(): token:0
+[ 35405][V][               GunSettings.cpp:   207]                     onCallback(): token:4
+[ 35415][V][               GunSettings.cpp:   207]                     onCallback(): token:0
+6D [m]
+2E [.]
+30 [0]
+2E [.]
+35 [5]
+2E [.]
+30 [0]
+58 [X]
+[ 37394][V][               GunSettings.cpp:   201]                     onCallback(): [6] 0.5.0
+[ 37395][V][               GunSettings.cpp:   207]                     onCallback(): token:0
+[ 37405][V][               GunSettings.cpp:   207]                     onCallback(): token:5
+[ 37415][V][               GunSettings.cpp:   207]                     onCallback(): token:0
+6D [m]
+2E [.]
+30 [0]
+2E [.]
+36 [6]
+2E [.]
+31 [1]
+58 [X]
+[ 39395][V][               GunSettings.cpp:   201]                     onCallback(): [6] 0.6.1
+[ 39395][V][               GunSettings.cpp:   207]                     onCallback(): token:0
+[ 39406][V][               GunSettings.cpp:   207]                     onCallback(): token:6
+[ 39416][V][               GunSettings.cpp:   207]                     onCallback(): token:1
+6D [m]
+2E [.]
+30 [0]
+2E [.]
+37 [7]
+2E [.]
+30 [0]
+58 [X]
+[ 41396][V][               GunSettings.cpp:   201]                     onCallback(): [6] 0.7.0
+[ 41396][V][               GunSettings.cpp:   207]                     onCallback(): token:0
+[ 41407][V][               GunSettings.cpp:   207]                     onCallback(): token:7
+[ 41417][V][               GunSettings.cpp:   207]                     onCallback(): token:0
+6D [m]
+2E [.]
+30 [0]
+2E [.]
+38 [8]
+2E [.]
+30 [0]
+58 [X]
+[ 43397][V][               GunSettings.cpp:   201]                     onCallback(): [6] 0.8.0
+[ 43397][V][               GunSettings.cpp:   207]                     onCallback(): token:0
+[ 43407][V][               GunSettings.cpp:   207]                     onCallback(): token:8
+[ 43417][V][               GunSettings.cpp:   207]                     onCallback(): token:0
+6D [m]
+2E [.]
+32 [2]
+2E [.]
+30 [0]
+2E [.]
+32 [2]
+35 [5]
+35 [5]
+58 [X]
+[ 45398][V][               GunSettings.cpp:   201]                     onCallback(): [8] 2.0.255
+[ 45398][V][               GunSettings.cpp:   207]                     onCallback(): token:2
+[ 45408][V][               GunSettings.cpp:   207]                     onCallback(): token:0
+[ 45418][V][               GunSettings.cpp:   207]                     onCallback(): token:255
+6D [m]
+2E [.]
+32 [2]
+2E [.]
+31 [1]
+2E [.]
+31 [1]
+35 [5]
+30 [0]
+58 [X]
+[ 47398][V][               GunSettings.cpp:   201]                     onCallback(): [8] 2.1.150
+[ 47399][V][               GunSettings.cpp:   207]                     onCallback(): token:2
+[ 47409][V][               GunSettings.cpp:   207]                     onCallback(): token:1
+[ 47419][V][               GunSettings.cpp:   207]                     onCallback(): token:150
+6D [m]
+2E [.]
+32 [2]
+2E [.]
+32 [2]
+2E [.]
+34 [4]
+35 [5]
+58 [X]
+[ 49400][V][               GunSettings.cpp:   201]                     onCallback(): [7] 2.2.45
+[ 49400][V][               GunSettings.cpp:   207]                     onCallback(): token:2
+[ 49410][V][               GunSettings.cpp:   207]                     onCallback(): token:2
+[ 49420][V][               GunSettings.cpp:   207]                     onCallback(): token:45
+6D [m]
+2E [.]
+32 [2]
+2E [.]
+33 [3]
+2E [.]
+33 [3]
+30 [0]
+58 [X]
+[ 51400][V][               GunSettings.cpp:   201]                     onCallback(): [7] 2.3.30
+[ 51400][V][               GunSettings.cpp:   207]                     onCallback(): token:2
+[ 51410][V][               GunSettings.cpp:   207]                     onCallback(): token:3
+[ 51421][V][               GunSettings.cpp:   207]                     onCallback(): token:30
+6D [m]
+2E [.]
+32 [2]
+2E [.]
+34 [4]
+2E [.]
+35 [5]
+30 [0]
+30 [0]
+58 [X]
+[ 53400][V][               GunSettings.cpp:   201]                     onCallback(): [8] 2.4.500
+[ 53400][V][               GunSettings.cpp:   207]                     onCallback(): token:2
+[ 53410][V][               GunSettings.cpp:   207]                     onCallback(): token:4
+[ 53421][V][               GunSettings.cpp:   207]                     onCallback(): token:500
+6D [m]
+2E [.]
+32 [2]
+2E [.]
+35 [5]
+2E [.]
+33 [3]
+58 [X]
+[ 55401][V][               GunSettings.cpp:   201]                     onCallback(): [6] 2.5.3
+[ 55401][V][               GunSettings.cpp:   207]                     onCallback(): token:2
+[ 55411][V][               GunSettings.cpp:   207]                     onCallback(): token:5
+[ 55422][V][               GunSettings.cpp:   207]                     onCallback(): token:3
+6D [m]
+2E [.]
+32 [2]
+2E [.]
+36 [6]
+2E [.]
+32 [2]
+35 [5]
+30 [0]
+30 [0]
+58 [X]
+[ 57402][V][               GunSettings.cpp:   201]                     onCallback(): [9] 2.6.2500
+[ 57402][V][               GunSettings.cpp:   207]                     onCallback(): token:2
+[ 57412][V][               GunSettings.cpp:   207]                     onCallback(): token:6
+[ 57422][V][               GunSettings.cpp:   207]                     onCallback(): token:2500
+6D [m]
+2E [.]
+32 [2]
+2E [.]
+37 [7]
+2E [.]
+31 [1]
+58 [X]
+[ 59402][V][               GunSettings.cpp:   201]                     onCallback(): [6] 2.7.1
+[ 59402][V][               GunSettings.cpp:   207]                     onCallback(): token:2
+[ 59412][V][               GunSettings.cpp:   207]                     onCallback(): token:7
+[ 59423][V][               GunSettings.cpp:   207]                     onCallback(): token:1
+6D [m]
+2E [.]
+32 [2]
+2E [.]
+38 [8]
+2E [.]
+30 [0]
+58 [X]
+[ 61402][V][               GunSettings.cpp:   201]                     onCallback(): [6] 2.8.0
+[ 61402][V][               GunSettings.cpp:   207]                     onCallback(): token:2
+[ 61413][V][               GunSettings.cpp:   207]                     onCallback(): token:8
+[ 61423][V][               GunSettings.cpp:   207]                     onCallback(): token:0
+6D [m]
+2E [.]
+32 [2]
+2E [.]
+39 [9]
+2E [.]
+31 [1]
+36 [6]
+37 [7]
+31 [1]
+31 [1]
+36 [6]
+38 [8]
+30 [0]
+58 [X]
+[ 63403][V][               GunSettings.cpp:   201]                     onCallback(): [13] 2.9.16711680
+[ 63403][V][               GunSettings.cpp:   207]                     onCallback(): token:2
+[ 63413][V][               GunSettings.cpp:   207]                     onCallback(): token:9
+[ 63423][V][               GunSettings.cpp:   207]                     onCallback(): token:16711680
+6D [m]
+2E [.]
+32 [2]
+2E [.]
+31 [1]
+30 [0]
+2E [.]
+36 [6]
+35 [5]
+32 [2]
+38 [8]
+30 [0]
+58 [X]
+[ 65403][V][               GunSettings.cpp:   201]                     onCallback(): [11] 2.10.65280
+[ 65403][V][               GunSettings.cpp:   207]                     onCallback(): token:2
+[ 65413][V][               GunSettings.cpp:   207]                     onCallback(): token:10
+[ 65423][V][               GunSettings.cpp:   207]                     onCallback(): token:65280
+6D [m]
+2E [.]
+32 [2]
+2E [.]
+31 [1]
+31 [1]
+2E [.]
+32 [2]
+35 [5]
+35 [5]
+58 [X]
+[ 67403][V][               GunSettings.cpp:   201]                     onCallback(): [9] 2.11.255
+[ 67404][V][               GunSettings.cpp:   207]                     onCallback(): token:2
+[ 67414][V][               GunSettings.cpp:   207]                     onCallback(): token:11
+[ 67424][V][               GunSettings.cpp:   207]                     onCallback(): token:255
+6D [m]
+2E [.]
+33 [3]
+2E [.]
+30 [0]
+2E [.]
+30 [0]
+58 [X]
+[ 69405][V][               GunSettings.cpp:   201]                     onCallback(): [6] 3.0.0
+[ 69405][V][               GunSettings.cpp:   207]                     onCallback(): token:3
+[ 69415][V][               GunSettings.cpp:   207]                     onCallback(): token:0
+[ 69425][V][               GunSettings.cpp:   207]                     onCallback(): token:0
+6D [m]
+2E [.]
+50 [P]
+2E [.]
+69 [i]
+2E [.]
+30 [0]
+2E [.]
+30 [0]
+58 [X]
+[ 71405][V][               GunSettings.cpp:   201]                     onCallback(): [8] P.i.0.0
+[ 71405][V][               GunSettings.cpp:   207]                     onCallback(): token:P
+[ 71415][V][               GunSettings.cpp:   207]                     onCallback(): token:i
+[ 71426][V][               GunSettings.cpp:   207]                     onCallback(): token:0
+[ 71436][V][               GunSettings.cpp:   207]                     onCallback(): token:0
+6D [m]
+2E [.]
+50 [P]
+2E [.]
+72 [r]
+2E [.]
+30 [0]
+2E [.]
+31 [1]
+58 [X]
+[ 73406][V][               GunSettings.cpp:   201]                     onCallback(): [8] P.r.0.1
+[ 73406][V][               GunSettings.cpp:   207]                     onCallback(): token:P
+[ 73416][V][               GunSettings.cpp:   207]                     onCallback(): token:r
+[ 73427][V][               GunSettings.cpp:   207]                     onCallback(): token:0
+[ 73437][V][               GunSettings.cpp:   207]                     onCallback(): token:1
+6D [m]
+2E [.]
+50 [P]
+2E [.]
+6C [l]
+2E [.]
+30 [0]
+2E [.]
+31 [1]
+58 [X]
+[ 75407][V][               GunSettings.cpp:   201]                     onCallback(): [8] P.l.0.1
+[ 75407][V][               GunSettings.cpp:   207]                     onCallback(): token:P
+[ 75418][V][               GunSettings.cpp:   207]                     onCallback(): token:l
+[ 75428][V][               GunSettings.cpp:   207]                     onCallback(): token:0
+[ 75438][V][               GunSettings.cpp:   207]                     onCallback(): token:1
+6D [m]
+2E [.]
+50 [P]
+2E [.]
+63 [c]
+2E [.]
+30 [0]
+2E [.]
+31 [1]
+36 [6]
+37 [7]
+31 [1]
+31 [1]
+36 [6]
+38 [8]
+30 [0]
+58 [X]
+[ 77408][V][               GunSettings.cpp:   201]                     onCallback(): [15] P.c.0.16711680
+[ 77408][V][               GunSettings.cpp:   207]                     onCallback(): token:P
+[ 77419][V][               GunSettings.cpp:   207]                     onCallback(): token:c
+[ 77429][V][               GunSettings.cpp:   207]                     onCallback(): token:0
+[ 77439][V][               GunSettings.cpp:   207]                     onCallback(): token:16711680
+6D [m]
+2E [.]
+50 [P]
+2E [.]
+6E [n]
+2E [.]
+30 [0]
+2E [.]
+50 [P]
+72 [r]
+6F [o]
+66 [f]
+69 [i]
+6C [l]
+65 [e]
+20 [ ]
+41 [A]
+58 [X]
+[ 79409][V][               GunSettings.cpp:   201]                     onCallback(): [16] P.n.0.Profile A
+[ 79409][V][               GunSettings.cpp:   207]                     onCallback(): token:P
+[ 79419][V][               GunSettings.cpp:   207]                     onCallback(): token:n
+[ 79430][V][               GunSettings.cpp:   207]                     onCallback(): token:0
+[ 79440][V][               GunSettings.cpp:   207]                     onCallback(): token:Profile A
+6D [m]
+2E [.]
+50 [P]
+2E [.]
+69 [i]
+2E [.]
+31 [1]
+2E [.]
+30 [0]
+58 [X]
+[ 81410][V][               GunSettings.cpp:   201]                     onCallback(): [8] P.i.1.0
+[ 81410][V][               GunSettings.cpp:   207]                     onCallback(): token:P
+[ 81420][V][               GunSettings.cpp:   207]                     onCallback(): token:i
+[ 81430][V][               GunSettings.cpp:   207]                     onCallback(): token:1
+[ 81440][V][               GunSettings.cpp:   207]                     onCallback(): token:0
+6D [m]
+2E [.]
+50 [P]
+2E [.]
+72 [r]
+2E [.]
+31 [1]
+2E [.]
+31 [1]
+58 [X]
+[ 83410][V][               GunSettings.cpp:   201]                     onCallback(): [8] P.r.1.1
+[ 83410][V][               GunSettings.cpp:   207]                     onCallback(): token:P
+[ 83421][V][               GunSettings.cpp:   207]                     onCallback(): token:r
+[ 83431][V][               GunSettings.cpp:   207]                     onCallback(): token:1
+[ 83441][V][               GunSettings.cpp:   207]                     onCallback(): token:1
+6D [m]
+2E [.]
+50 [P]
+2E [.]
+6C [l]
+2E [.]
+31 [1]
+2E [.]
+31 [1]
+58 [X]
+[ 85410][V][               GunSettings.cpp:   201]                     onCallback(): [8] P.l.1.1
+[ 85411][V][               GunSettings.cpp:   207]                     onCallback(): token:P
+[ 85421][V][               GunSettings.cpp:   207]                     onCallback(): token:l
+[ 85431][V][               GunSettings.cpp:   207]                     onCallback(): token:1
+[ 85441][V][               GunSettings.cpp:   207]                     onCallback(): token:1
+6D [m]
+2E [.]
+50 [P]
+2E [.]
+63 [c]
+2E [.]
+31 [1]
+2E [.]
+36 [6]
+35 [5]
+32 [2]
+38 [8]
+30 [0]
+58 [X]
+[ 87411][V][               GunSettings.cpp:   201]                     onCallback(): [12] P.c.1.65280
+[ 87411][V][               GunSettings.cpp:   207]                     onCallback(): token:P
+[ 87421][V][               GunSettings.cpp:   207]                     onCallback(): token:c
+[ 87432][V][               GunSettings.cpp:   207]                     onCallback(): token:1
+[ 87442][V][               GunSettings.cpp:   207]                     onCallback(): token:65280
+6D [m]
+2E [.]
+50 [P]
+2E [.]
+6E [n]
+2E [.]
+31 [1]
+2E [.]
+50 [P]
+72 [r]
+6F [o]
+66 [f]
+69 [i]
+6C [l]
+65 [e]
+20 [ ]
+42 [B]
+58 [X]
+[ 89412][V][               GunSettings.cpp:   201]                     onCallback(): [16] P.n.1.Profile B
+[ 89412][V][               GunSettings.cpp:   207]                     onCallback(): token:P
+[ 89422][V][               GunSettings.cpp:   207]                     onCallback(): token:n
+[ 89433][V][               GunSettings.cpp:   207]                     onCallback(): token:1
+[ 89443][V][               GunSettings.cpp:   207]                     onCallback(): token:Profile B
+6D [m]
+2E [.]
+50 [P]
+2E [.]
+69 [i]
+2E [.]
+32 [2]
+2E [.]
+30 [0]
+58 [X]
+[ 91413][V][               GunSettings.cpp:   201]                     onCallback(): [8] P.i.2.0
+[ 91413][V][               GunSettings.cpp:   207]                     onCallback(): token:P
+[ 91423][V][               GunSettings.cpp:   207]                     onCallback(): token:i
+[ 91433][V][               GunSettings.cpp:   207]                     onCallback(): token:2
+[ 91443][V][               GunSettings.cpp:   207]                     onCallback(): token:0
+6D [m]
+2E [.]
+50 [P]
+2E [.]
+72 [r]
+2E [.]
+32 [2]
+2E [.]
+31 [1]
+58 [X]
+[ 93413][V][               GunSettings.cpp:   201]                     onCallback(): [8] P.r.2.1
+[ 93413][V][               GunSettings.cpp:   207]                     onCallback(): token:P
+[ 93423][V][               GunSettings.cpp:   207]                     onCallback(): token:r
+[ 93434][V][               GunSettings.cpp:   207]                     onCallback(): token:2
+[ 93444][V][               GunSettings.cpp:   207]                     onCallback(): token:1
+6D [m]
+2E [.]
+50 [P]
+2E [.]
+6C [l]
+2E [.]
+32 [2]
+2E [.]
+31 [1]
+58 [X]
+[ 95422][V][               GunSettings.cpp:   201]                     onCallback(): [8] P.l.2.1
+[ 95422][V][               GunSettings.cpp:   207]                     onCallback(): token:P
+[ 95433][V][               GunSettings.cpp:   207]                     onCallback(): token:l
+[ 95443][V][               GunSettings.cpp:   207]                     onCallback(): token:2
+[ 95453][V][               GunSettings.cpp:   207]                     onCallback(): token:1
+6D [m]
+2E [.]
+50 [P]
+2E [.]
+63 [c]
+2E [.]
+32 [2]
+2E [.]
+32 [2]
+35 [5]
+35 [5]
+58 [X]
+[ 97433][V][               GunSettings.cpp:   201]                     onCallback(): [10] P.c.2.255
+[ 97433][V][               GunSettings.cpp:   207]                     onCallback(): token:P
+[ 97444][V][               GunSettings.cpp:   207]                     onCallback(): token:c
+[ 97454][V][               GunSettings.cpp:   207]                     onCallback(): token:2
+[ 97464][V][               GunSettings.cpp:   207]                     onCallback(): token:255
+6D [m]
+2E [.]
+50 [P]
+2E [.]
+6E [n]
+2E [.]
+32 [2]
+2E [.]
+50 [P]
+72 [r]
+6F [o]
+66 [f]
+69 [i]
+6C [l]
+65 [e]
+20 [ ]
+53 [S]
+74 [t]
+61 [a]
+72 [r]
+74 [t]
+58 [X]
+[ 99434][V][               GunSettings.cpp:   201]                     onCallback(): [20] P.n.2.Profile Start
+[ 99434][V][               GunSettings.cpp:   207]                     onCallback(): token:P
+[ 99444][V][               GunSettings.cpp:   207]                     onCallback(): token:n
+[ 99455][V][               GunSettings.cpp:   207]                     onCallback(): token:2
+[ 99465][V][               GunSettings.cpp:   207]                     onCallback(): token:Profile Start
+6D [m]
+2E [.]
+50 [P]
+2E [.]
+69 [i]
+2E [.]
+33 [3]
+2E [.]
+30 [0]
+58 [X]
+[101441][V][               GunSettings.cpp:   201]                     onCallback(): [8] P.i.3.0
+[101441][V][               GunSettings.cpp:   207]                     onCallback(): token:P
+[101451][V][               GunSettings.cpp:   207]                     onCallback(): token:i
+[101462][V][               GunSettings.cpp:   207]                     onCallback(): token:3
+[101472][V][               GunSettings.cpp:   207]                     onCallback(): token:0
+6D [m]
+2E [.]
+50 [P]
+2E [.]
+72 [r]
+2E [.]
+33 [3]
+2E [.]
+31 [1]
+58 [X]
+[103455][V][               GunSettings.cpp:   201]                     onCallback(): [8] P.r.3.1
+[103455][V][               GunSettings.cpp:   207]                     onCallback(): token:P
+[103465][V][               GunSettings.cpp:   207]                     onCallback(): token:r
+[103475][V][               GunSettings.cpp:   207]                     onCallback(): token:3
+[103486][V][               GunSettings.cpp:   207]                     onCallback(): token:1
+6D [m]
+2E [.]
+50 [P]
+2E [.]
+6C [l]
+2E [.]
+33 [3]
+2E [.]
+31 [1]
+58 [X]
+[105464][V][               GunSettings.cpp:   201]                     onCallback(): [8] P.l.3.1
+[105464][V][               GunSettings.cpp:   207]                     onCallback(): token:P
+[105474][V][               GunSettings.cpp:   207]                     onCallback(): token:l
+[105484][V][               GunSettings.cpp:   207]                     onCallback(): token:3
+[105495][V][               GunSettings.cpp:   207]                     onCallback(): token:1
+6D [m]
+2E [.]
+50 [P]
+2E [.]
+63 [c]
+2E [.]
+33 [3]
+2E [.]
+31 [1]
+36 [6]
+37 [7]
+31 [1]
+31 [1]
+39 [9]
+33 [3]
+35 [5]
+58 [X]
+[107465][V][               GunSettings.cpp:   201]                     onCallback(): [15] P.c.3.16711935
+[107465][V][               GunSettings.cpp:   207]                     onCallback(): token:P
+[107476][V][               GunSettings.cpp:   207]                     onCallback(): token:c
+[107486][V][               GunSettings.cpp:   207]                     onCallback(): token:3
+[107496][V][               GunSettings.cpp:   207]                     onCallback(): token:16711935
+6D [m]
+2E [.]
+50 [P]
+2E [.]
+6E [n]
+2E [.]
+33 [3]
+2E [.]
+50 [P]
+72 [r]
+6F [o]
+66 [f]
+69 [i]
+6C [l]
+65 [e]
+20 [ ]
+53 [S]
+65 [e]
+6C [l]
+65 [e]
+63 [c]
+74 [t]
+58 [X]
+[109474][V][               GunSettings.cpp:   201]                     onCallback(): [21] P.n.3.Profile Select
+[109474][V][               GunSettings.cpp:   207]                     onCallback(): token:P
+[109484][V][               GunSettings.cpp:   207]                     onCallback(): token:n
+[109495][V][               GunSettings.cpp:   207]                     onCallback(): token:3
+[109505][V][               GunSettings.cpp:   207]                     onCallback(): token:Profile Select
+53 [S]

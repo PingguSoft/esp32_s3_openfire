@@ -27,7 +27,7 @@ void GunCalibration::begin() {
     _stage    = Cali_Init;
     _ani_info = {0, 0, 0, 0, 0};
 
-    GunSettings::ProfileData_t* pd = _prefernce->get_profile_data();
+    GunSettings::profile_data_t* pd = _prefernce->get_profile_data();
     _pd_save    = *pd;
     _prefernce->set_gun_mode(GunSettings::GunMode_Calibration);
 }
@@ -83,7 +83,7 @@ bool GunCalibration::loop(uint8_t buttons) {
     if (gunmode == GunSettings::GunMode_Calibration) {
         if (!is_mouse_move()) {
             if (_btn_trk.isPressed(GunSettings::BtnMask_Trigger)) {
-                GunSettings::ProfileData_t* pd = _prefernce->get_profile_data();
+                GunSettings::profile_data_t* pd = _prefernce->get_profile_data();
                 OpenFIRE_Layout *layout = _cam->get_layout();
 
                 _stage++;
@@ -153,7 +153,7 @@ bool GunCalibration::loop(uint8_t buttons) {
             LOGV("Calibration done !!!\n");
             ret = false;
         } else if (_btn_trk.isPressed(GunSettings::BtnMask_B)) {
-            GunSettings::ProfileData_t* pd = _prefernce->get_profile_data();
+            GunSettings::profile_data_t* pd = _prefernce->get_profile_data();
             *pd = _pd_save;
             LOGV("Cancel & Retry !!!\n");
             begin();

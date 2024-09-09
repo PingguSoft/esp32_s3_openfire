@@ -64,7 +64,7 @@ bool GunCamera::timer_camera_task(GunCamera *p) {
                               res_x / 2, res_y, res_x, res_y / 2);
 
         // Output mapped to screen resolution because offsets are measured in pixels
-        GunSettings::ProfileData_t *pd = p->_settings->get_profile_data();
+        GunSettings::profile_data_t *pd = p->_settings->get_profile_data();
         int x = map(p->_perspective->getX(), 0, res_x, (0 - pd->leftOffset), (res_x + pd->rightOffset));
         int y = map(p->_perspective->getY(), 0, res_y, (0 - pd->topOffset), (res_y + pd->bottomOffset));
 
@@ -183,7 +183,7 @@ void GunCamera::setup(GunSettings *settings) {
     _perspective = new OpenFIRE_Perspective();
     _settings = settings;
 
-    GunSettings::ProfileData_t *pd = _settings->get_profile_data();
+    GunSettings::profile_data_t *pd = _settings->get_profile_data();
     _layout = (pd->irLayout) ? (OpenFIRE_Layout *)new OpenFIRE_Diamond() : (OpenFIRE_Layout *)new OpenFIRE_Square();
     _perspective->source(pd->adjX, pd->adjY);
     _perspective->deinit(0);

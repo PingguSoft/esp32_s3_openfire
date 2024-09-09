@@ -39,7 +39,7 @@ class GunCalibration {
     int8_t                              _stage;
     ButtonTracker                       _btn_trk;
     struct _ani                         _ani_info;
-    GunSettings::ProfileData_t       _pd_save;
+    GunSettings::profile_data_t       _pd_save;
 };
 
 #endif

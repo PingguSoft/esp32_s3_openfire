@@ -89,10 +89,6 @@ int debug_printf(const char *format, ...) {
     return ret;
 }
 
-#define OPENFIRE_VERSION  5.2
-#define OPENFIRE_CODENAME "Dawn"
-#define OPENFIRE_BOARD    "generic"
-
 class GunMain : public GunDockCallback {
    public:
     GunMain() {
@@ -102,6 +98,21 @@ class GunMain : public GunDockCallback {
         _gunCali     = new GunCalibration();
         _gunSettings = new GunSettings();
         _pixels      = new Adafruit_NeoPixel(1, PIN_LED_STRIP, NEO_GRB + NEO_KHZ800);
+    }
+
+    void onCallback(uint8_t cmd, uint8_t *pData, uint16_t size, Stream *stream) {
+        _gunSettings->onCallback(cmd, pData, size, stream);
+
+        switch (cmd) {
+            case GunDock::CMD_IR_BRIGHTNESS: {
+                uint8_t lvl = *pData - '0';
+                LOGV("ir brightness : %d\n", lvl);
+            }
+            break;
+
+            default:
+                break;
+        }
     }
 
     void process_joy(int8_t x, int8_t y, uint8_t buttons) {
@@ -126,7 +137,7 @@ class GunMain : public GunDockCallback {
     }
 
     void update_auto_trigger() {
-        GunSettings::Preferences_t *pref = _gunSettings->get_preference();
+        GunSettings::preferences_t *pref = _gunSettings->get_preference();
 
         switch (_gunSettings->get_gun_mode()) {
             case GunSettings::GunMode_Calibration:
@@ -140,7 +151,7 @@ class GunMain : public GunDockCallback {
     }
 
     void set_ffb(int8_t type = -1, int8_t power = -1) {
-        GunSettings::Preferences_t *pref = _gunSettings->get_preference();
+        GunSettings::preferences_t *pref = _gunSettings->get_preference();
         // uint16_t                    hold_delay = constrain(pref->device.auto_trg_rpt_delay / 3, 50, 300);
         uint16_t hold_delay = 50;
 
@@ -196,7 +207,7 @@ class GunMain : public GunDockCallback {
             _gunCali->begin();
         }
 
-        _gunDock = new GunDock(_gunSettings, _gunHID->get_serial());
+        _gunDock = new GunDock(_gunHID->get_serial());
         _gunDock->set_callback(this);
     }
 
@@ -268,82 +279,7 @@ class GunMain : public GunDockCallback {
 #endif
     }
 
-    void onCallback(uint8_t cmd, uint8_t *pData, uint16_t size, Stream *stream) {
-        switch (cmd) {
-            case GunDock::CMD_IR_BRIGHTNESS: {
-                uint8_t lvl = *pData - '0';
-                LOGV("ir brightness : %d\n", lvl);
-            }
-            break;
 
-            case GunDock::CMD_DOCK_MODE:
-                LOGV("docked mode\n");
-                _gunSettings->set_gun_mode(GunSettings::GunMode_Docked);
-                stream->printf("OpenFIRE,%.1f,%s,%s,%i\r\n", OPENFIRE_VERSION, OPENFIRE_CODENAME, OPENFIRE_BOARD,
-                               _gunSettings->get_cur_profile());
-                break;
-
-            case GunDock::CMD_EEPROM_READ_TOGGLES:
-                LOGV("toggles\n");
-                stream->printf("%i,%i,%i,%i,%i,%i,%i,%i,%i\r\n", _gunSettings->_toggles.customPinsInUse,
-                               _gunSettings->_toggles.rumbleActive, _gunSettings->_toggles.solenoidActive,
-                               _gunSettings->_toggles.autofireActive, _gunSettings->_toggles.simpleMenu,
-                               _gunSettings->_toggles.holdToPause, _gunSettings->_toggles.commonAnode,
-                               _gunSettings->_toggles.lowButtonMode, _gunSettings->_toggles.rumbleFF);
-                break;
-
-            case GunDock::CMD_EEPROM_READ_PINS:
-                LOGV("pins\n");
-                stream->printf(
-                    "%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i\r\n",
-                    _gunSettings->_pins.bTrigger, _gunSettings->_pins.bGunA, _gunSettings->_pins.bGunB,
-                    _gunSettings->_pins.bGunC, _gunSettings->_pins.bStart, _gunSettings->_pins.bSelect,
-                    _gunSettings->_pins.bGunUp, _gunSettings->_pins.bGunDown, _gunSettings->_pins.bGunLeft,
-                    _gunSettings->_pins.bGunRight, _gunSettings->_pins.bPedal, _gunSettings->_pins.bPedal2,
-                    _gunSettings->_pins.bHome, _gunSettings->_pins.bPump, _gunSettings->_pins.oRumble,
-                    _gunSettings->_pins.oSolenoid, _gunSettings->_pins.sRumble, _gunSettings->_pins.sSolenoid,
-                    _gunSettings->_pins.sAutofire, _gunSettings->_pins.oPixel, _gunSettings->_pins.oLedR,
-                    _gunSettings->_pins.oLedG, _gunSettings->_pins.oLedB, _gunSettings->_pins.pCamSDA,
-                    _gunSettings->_pins.pCamSCL, _gunSettings->_pins.pPeriphSDA, _gunSettings->_pins.pPeriphSCL,
-                    _gunSettings->_pins.aBattRead, _gunSettings->_pins.aStickX, _gunSettings->_pins.aStickY,
-                    _gunSettings->_pins.aTMP36);
-                break;
-
-            case GunDock::CMD_EEPROM_READ_SETTINGS:
-                LOGV("settings\n");
-                stream->printf("%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i\r\n", _gunSettings->_settings.rumbleIntensity,
-                               _gunSettings->_settings.rumbleInterval, _gunSettings->_settings.solenoidNormalInterval,
-                               _gunSettings->_settings.solenoidFastInterval,
-                               _gunSettings->_settings.solenoidLongInterval, _gunSettings->_settings.autofireWaitFactor,
-                               _gunSettings->_settings.pauseHoldLength, _gunSettings->_settings.customLEDcount,
-                               _gunSettings->_settings.customLEDstatic, _gunSettings->_settings.customLEDcolor1,
-                               _gunSettings->_settings.customLEDcolor2, _gunSettings->_settings.customLEDcolor3);
-                break;
-
-            case GunDock::CMD_EEPROM_READ_USB:
-                LOGV("usb PID\n");
-                if (_gunSettings->_usb.deviceName[0] == '\0')
-                    stream->printf("%i,SERIALREADERR01\r\n", _gunSettings->_usb.devicePID);
-                else
-                    stream->printf("%i,%s\r\n", _gunSettings->_usb.devicePID, _gunSettings->_usb.deviceName);
-                break;
-
-            case GunDock::CMD_EEPROM_READ_PROFILE:
-                if (*pData >= '0' && *pData <= '3') {
-                    uint8_t idx = *pData - '0';
-
-                    LOGV("profile : %d\n", idx);
-                    stream->printf(
-                        "%i,%i,%i,%i,%.2f,%.2f,%i,%i,%i,%i,%s\r\n", _gunSettings->get_profile_data(idx)->topOffset,
-                        _gunSettings->get_profile_data(idx)->bottomOffset, _gunSettings->get_profile_data(idx)->leftOffset,
-                        _gunSettings->get_profile_data(idx)->rightOffset, _gunSettings->get_profile_data(idx)->TLled,
-                        _gunSettings->get_profile_data(idx)->TRled, _gunSettings->get_profile_data(idx)->irSensitivity,
-                        _gunSettings->get_profile_data(idx)->runMode, _gunSettings->get_profile_data(idx)->irLayout,
-                        _gunSettings->get_profile_data(idx)->color, _gunSettings->get_profile_data(idx)->name);
-                }
-                break;
-        }
-    }
 
    private:
     Adafruit_NeoPixel *_pixels;
