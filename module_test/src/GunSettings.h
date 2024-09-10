@@ -107,7 +107,7 @@ class GunSettings : public GunDockCallback {
         uint8_t        profileCount;
         uint8_t        selectedProfile;
         profile_data_t profileData[MAX_PROFILE_CNT];
-    } __attribute__((packed)) preferences_t;
+    } __attribute__((packed)) profiles_t;
 
     typedef struct TogglesMap_s {
         bool customPinsInUse;  // Are we using custom pins mapping?
@@ -116,15 +116,10 @@ class GunSettings : public GunDockCallback {
         bool autofireActive;   // Is autofire enabled?
         bool simpleMenu;       // Is simple pause menu active?
         bool holdToPause;      // Is holding A/B buttons to enter pause mode allowed?
-        bool commonAnode;      // If LED is Common Anode (+, connects to 5V) rather than Common Cathode (-, connects to GND)
-        bool lowButtonMode;    // Is low buttons mode active?
-        bool rumbleFF;         // Rumble force-feedback, instead of Solenoid
-    } __attribute__((packed)) toggle_map_t;
-
-    typedef union {
-        toggle_map_t s;
-        bool         arr[sizeof(toggle_map_t)];
-    } __attribute__((packed)) toggle_map_ut;
+        bool commonAnode;  // If LED is Common Anode (+, connects to 5V) rather than Common Cathode (-, connects to GND)
+        bool lowButtonMode;  // Is low buttons mode active?
+        bool rumbleFF;       // Rumble force-feedback, instead of Solenoid
+    } __attribute__((packed)) feature_map_t;
 
     typedef struct PinsMap_s {
         int8_t bTrigger;    // Trigger
@@ -158,12 +153,7 @@ class GunSettings : public GunDockCallback {
         int8_t aStickX;     // Analog Stick X-axis
         int8_t aStickY;     // Analog Stick Y-axis
         int8_t aTMP36;      // Analog TMP36 Temperature Sensor Pin
-    } pins_map_t;
-
-    typedef union {
-        pins_map_t s;
-        bool       arr[sizeof(pins_map_t)];
-    } __attribute__((packed)) pins_map_ut;
+    } __attribute__((packed)) pins_map_t;
 
     typedef struct SettingsMap_s {
         uint8_t  rumbleIntensity;
@@ -178,19 +168,12 @@ class GunSettings : public GunDockCallback {
         uint32_t customLEDcolor1;
         uint32_t customLEDcolor2;
         uint32_t customLEDcolor3;
-    } __attribute__((packed)) settings_map_t;
+    } __attribute__((packed)) params_map_t;
 
     typedef struct USBMap_s {
         char     deviceName[16];
         uint16_t devicePID;
     } __attribute__((packed)) usb_map_t;
-
-    typedef struct {
-        uint16_t auto_trg_delay;
-        uint16_t auto_trg_rpt_delay;
-        uint8_t  recoil_type;
-        uint8_t  recoil_pwr;
-    } __attribute__((packed)) pref_device_t;
 
     /*
     *****************************************************************************************
@@ -199,13 +182,18 @@ class GunSettings : public GunDockCallback {
     */
     GunSettings() { _gunmode = GunMode_Init; }
 
-    void            set_gun_mode(GunMode_e mode) { _gunmode = mode; }
-    GunMode_e       get_gun_mode() { return _gunmode; }
-    preferences_t*  get_preference() { return &_preferences; }
-    profile_data_t* get_profile_data(uint8_t idx) { return &_preferences.profileData[idx]; }
-    profile_data_t* get_profile_data() { return &_preferences.profileData[_preferences.selectedProfile]; }
-    void            set_cur_profile(uint8_t sel) { _preferences.selectedProfile = sel; }
-    uint8_t         get_cur_profile() { return _preferences.selectedProfile; }
+    void      set_gun_mode(GunMode_e mode) { _gunmode = mode; }
+    GunMode_e get_gun_mode() { return _gunmode; }
+
+    profile_data_t* get_profile(uint8_t idx) { return &_profiles.profileData[idx]; }
+    profile_data_t* get_profile() { return &_profiles.profileData[_profiles.selectedProfile]; }
+    void            set_profile_idx(uint8_t sel) { _profiles.selectedProfile = sel; }
+    uint8_t         get_profile_idx() { return _profiles.selectedProfile; }
+
+    feature_map_t*   get_feature_config() { return &_features; }
+    params_map_t*    get_param_config() { return &_params; }
+    usb_map_t*      get_usb_config() { return &_usb; }
+    pins_map_t*     get_pin_config() { return &_pins; }
 
     void setup();
     void save();
@@ -214,7 +202,7 @@ class GunSettings : public GunDockCallback {
     virtual void onCallback(uint8_t cmd, uint8_t* pData, uint16_t size, Stream* stream);
 
     /// @brief Required size for the preferences
-    static unsigned int Size() { return sizeof(HeaderId_u) + sizeof(_preferences); }
+    static unsigned int Size() { return sizeof(HeaderId_u) + sizeof(_profiles); }
 
    private:
     void dump();
@@ -225,10 +213,10 @@ class GunSettings : public GunDockCallback {
 
     // header ID to ensure junk isn't loaded if preferences aren't saved
     static const header_id_t _header_id;
-    static preferences_t     _preferences;  // single instance of the preference data
-    static toggle_map_ut     _toggles;
-    static pins_map_ut       _pins;
-    static settings_map_t    _settings;
+    static profiles_t        _profiles;  // single instance of the preference data
+    static feature_map_t      _features;
+    static pins_map_t        _pins;
+    static params_map_t    _params;
     static usb_map_t         _usb;
 };
 

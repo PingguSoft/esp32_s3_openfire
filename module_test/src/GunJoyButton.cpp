@@ -24,7 +24,7 @@ bool GunJoyButton::timer_sw_check_task(pin_sw_info_t *sw_info) {
 
             p->_buttons |= (1 << sw_info->_no);
             if (p->_auto_trg_rpt_delay > 0)
-                p->_timer->in(p->_auto_trg_rpt_delay / 3, timer_sw_pulse_task, sw_info);
+                p->_timer->in(p->_auto_trg_rpt_delay / 2, timer_sw_pulse_task, sw_info);
         }
 
         switch (sw_info->_state) {

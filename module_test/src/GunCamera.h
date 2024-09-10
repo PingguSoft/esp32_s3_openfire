@@ -23,10 +23,12 @@
 class GunCamera {
    public:
     GunCamera() : _rx(0), _ry(0), _x(0), _y(0), _idx(0), _xAxisArr {0, 0, 0}, _yAxisArr {0, 0, 0} {
-        _irSensitivity = DFRobotIRPositionEx::Sensitivity_Default;
+        _layout = NULL;
+        _perspective = NULL;
     }
 
     void                  setup(GunSettings *settings);
+    void                  update_setting();
     void                  loop();
     OpenFIRE_Layout      *get_layout() { return _layout; }
     OpenFIRE_Perspective *get_perspective() { return _perspective; }
@@ -43,7 +45,6 @@ class GunCamera {
 
     Timer<1, millis, GunCamera *>     *_timer;
     DFRobotIRPositionEx               *_ir;
-    DFRobotIRPositionEx::Sensitivity_e _irSensitivity;
     OpenFIRE_Layout                   *_layout;
     OpenFIRE_Perspective              *_perspective;
     GunSettings                       *_settings;

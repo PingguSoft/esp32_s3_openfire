@@ -27,6 +27,8 @@ class GunDock {
         CMD_EEPROM_READ_PROFILE,
 
         CMD_EEPROM_UPDATE,
+        CMD_TEST_FFB,
+        CMD_REBOOT
     };
 
     GunDock(Stream *stream) {
@@ -49,6 +51,8 @@ class GunDock {
         STATE_EEPROM_PROFILE,
         STATE_CALIBRATION_IDX,
         STATE_CALIBRATION,
+        STATE_TEST_FFB,
+        STATE_REBOOT
     };
 
     GunDockCallback *_callback;

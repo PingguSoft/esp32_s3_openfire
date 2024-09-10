@@ -1,7 +1,6 @@
 
 #include "GunDock.h"
 
-
 void GunDock::process() {
     int ch;
 
@@ -21,8 +20,6 @@ void GunDock::process() {
                         break;
 
                     case 'T':  // Toggle Test/Processing Mode
-                        // Serial.println("Entering Test Mode...");
-                        // Serial.println("Exiting processing mode...");
                         if (_callback) {
                             _callback->onCallback(CMD_TOGGLE_TEST_MODE, NULL, 0, _stream);
                         }
@@ -57,7 +54,6 @@ void GunDock::process() {
                         break;
 
                     case 'c':  // Clear EEPROM
-                        // Serial.println("Cleared! Please reset the board.");
                         if (_callback) {
                             _callback->onCallback(CMD_CLEAR_EEPROM, NULL, 0, _stream);
                         }
@@ -71,21 +67,44 @@ void GunDock::process() {
                     case 'l':  // Print EEPROM values.
                         _state = STATE_EEPROM;
                         break;
+
+                    case 't':  // force feedback test
+                        _state = STATE_TEST_FFB;
+                        break;
+
+                    case 'x':  // reboot
+                        _state = STATE_REBOOT;
+                        break;
                 }
                 break;
 
-            case STATE_BRIGHT: {
+            case STATE_REBOOT:
+                if (ch == 'x') {
+                    if (_callback) {
+                        _callback->onCallback(CMD_REBOOT, NULL, 0, _stream);
+                    }
+                }
+                _state = STATE_IDLE;
+                break;
+
+            case STATE_TEST_FFB:
+                if (_callback) {
+                    _callback->onCallback(CMD_TEST_FFB, (uint8_t*)&ch, 1, _stream);
+                }
+                _state = STATE_IDLE;
+                break;
+
+            case STATE_BRIGHT:
                 if (_callback) {
                     _callback->onCallback(CMD_IR_BRIGHTNESS, (uint8_t*)&ch, 1, _stream);
                 }
                 _state = STATE_IDLE;
-            } break;
+                break;
 
-            case STATE_CALIBRATION_IDX: {
+            case STATE_CALIBRATION_IDX:
                 _buf[0] = ch;
-                _state = STATE_CALIBRATION;
-            }
-            break;
+                _state  = STATE_CALIBRATION;
+                break;
 
             case STATE_CALIBRATION:
                 if (ch == 'C') {
@@ -96,32 +115,30 @@ void GunDock::process() {
                 _state = STATE_IDLE;
                 break;
 
-            case STATE_MAPPING: {
+            case STATE_MAPPING:
                 if (ch == '.') {
-                    _pos  = 0;
+                    _pos   = 0;
                     _state = STATE_MAPPING_DATA;
                 } else if (ch == 'X') {
                     _state = STATE_HEADER_START;
                 } else {
                     _state = STATE_IDLE;
                 }
-            }
-            break;
+                break;
 
-            case STATE_MAPPING_DATA: {
-                if (ch == 'X') {
+            case STATE_MAPPING_DATA:
+                if (ch == 'X' || ch == '.') {
                     if (_callback) {
                         _buf[_pos++] = 0;
                         _callback->onCallback(CMD_EEPROM_UPDATE, (uint8_t*)_buf, _pos, _stream);
                     }
-                    _state = STATE_HEADER_START;
+                    _state = (ch == 'X') ? STATE_HEADER_START : STATE_IDLE;
                 } else {
                     _buf[_pos++] = ch;
                 }
-            }
-            break;
+                break;
 
-            case STATE_EEPROM: {
+            case STATE_EEPROM:
                 switch (ch) {
                     case 'b':
                         if (_callback) {
@@ -155,7 +172,7 @@ void GunDock::process() {
                         _state = STATE_IDLE;
                         break;
                 }
-            } break;
+                break;
 
             case STATE_EEPROM_PROFILE:
                 if (_callback) {

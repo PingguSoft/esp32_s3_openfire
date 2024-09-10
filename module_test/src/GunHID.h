@@ -26,11 +26,12 @@ class GunHID {
     virtual void    report_mouse(int x, int y, uint8_t buttons) {}
     virtual void    report_gamepad(int x, int y, uint8_t hat, uint8_t buttons) {}
 
-    static int mouse_max_x() { return 32767; }
-    static int mouse_max_y() { return 32767; }
-
     int get_mouse_x() { return _mouse_x; }
     int get_mouse_y() { return _mouse_y; }
+
+    static const uint16_t mouse_max_x = 32767;
+    static const uint16_t mouse_max_y = 32767;
+
 
    protected:
     std::string _devMfr;

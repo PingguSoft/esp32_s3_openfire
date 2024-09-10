@@ -107,8 +107,33 @@ class GunMain : public GunDockCallback {
             case GunDock::CMD_IR_BRIGHTNESS: {
                 uint8_t lvl = *pData - '0';
                 LOGV("ir brightness : %d\n", lvl);
+                _gunCam->update_setting();
             }
             break;
+
+            case GunDock::CMD_TEST_FFB:
+                switch (*pData) {
+                    case 's':   // solenoid
+                        break;
+                    case 'r':   // rumble
+                        break;
+                    case 'R':   // LED
+                        break;
+                    case 'G':   // LED
+                        break;
+                    case 'B':   // LED
+                        break;
+                }
+                break;
+
+            case GunDock::CMD_REBOOT:
+                esp_restart();
+                break;
+
+            case GunDock::CMD_SAVE_PREFERENCE:
+                update_auto_trigger();
+                update_force_feedback();
+                break;
 
             default:
                 break;
@@ -137,42 +162,31 @@ class GunMain : public GunDockCallback {
     }
 
     void update_auto_trigger() {
-        GunSettings::preferences_t *pref = _gunSettings->get_preference();
-
-        switch (_gunSettings->get_gun_mode()) {
-            case GunSettings::GunMode_Calibration:
-                _gunJoy->set_auto_trigger(0, 0);
-                break;
-
-            default:
-                // _gunJoy->set_auto_trigger(pref->device.auto_trg_delay, pref->device.auto_trg_rpt_delay);
-                break;
+        if (_gunSettings->get_gun_mode() == GunSettings::GunMode_Calibration || !_gunSettings->get_feature_config()->autofireActive) {
+            _gunJoy->set_auto_trigger(0, 0);
+        } else if (_gunSettings->get_feature_config()->autofireActive) {
+            GunSettings::params_map_t *params = _gunSettings->get_param_config();
+            _gunJoy->set_auto_trigger(params->solenoidLongInterval, params->solenoidNormalInterval);
         }
     }
 
-    void set_ffb(int8_t type = -1, int8_t power = -1) {
-        GunSettings::preferences_t *pref = _gunSettings->get_preference();
-        // uint16_t                    hold_delay = constrain(pref->device.auto_trg_rpt_delay / 3, 50, 300);
-        uint16_t hold_delay = 50;
+    void update_force_feedback() {
+        GunSettings::params_map_t *params = _gunSettings->get_param_config();
 
-        // if (type != -1)
-        //     pref->device.recoil_type = type;
-
-        // if (power != -1)
-        //     pref->device.recoil_pwr = power;
-
-        if (type == 0) {
-            _gunFFB->setup(PIN_RUMBLE, hold_delay, _pixels, 0);
-        } else {
-            _gunFFB->setup(PIN_SOLENOID, hold_delay, _pixels, 0);
+        if (_gunSettings->get_feature_config()->solenoidActive) {
+            _gunFFB->setup(PIN_SOLENOID, params->solenoidFastInterval, _pixels, 0);
+        } else if (_gunSettings->get_feature_config()->rumbleActive) {
+            _gunFFB->setup(PIN_RUMBLE, params->solenoidFastInterval, _pixels, 0);
         }
-        // _gunFFB->set_power(pref->device.recoil_pwr);
+        _gunFFB->set_power(params->rumbleIntensity);
     }
 
     void setup() {
+        bool is_cal_req;
+
         // load settings
         _gunSettings->setup();
-        bool is_cal_req = !_gunSettings->load();
+        is_cal_req = !_gunSettings->load();
         _gunSettings->set_gun_mode(is_cal_req ? GunSettings::GunMode_Calibration : GunSettings::GunMode_Run);
 
         // pixels
@@ -188,14 +202,13 @@ class GunMain : public GunDockCallback {
         }
         _gunJoy->setup();
         update_auto_trigger();
+        update_force_feedback();
 
         // hid setup
         // _gunHID = new GunHIDBLE("OpenFIRE", "FIRECon", 0xF143, 0x1998);
-        _gunHID = new GunHIDUSB("OpenFIRE", "FIRECon", 0xF143, 0x1998);
+        _gunHID = new GunHIDUSB("OpenFIRE", "FIRECon", 0xF143, _gunSettings->get_usb_config()->devicePID);
         _gunHID->setup();
 
-        // ffb setup
-        set_ffb();
 
         // camera setup
         _gunCam->setup(_gunSettings);

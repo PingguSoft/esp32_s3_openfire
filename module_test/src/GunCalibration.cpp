@@ -7,12 +7,12 @@ typedef struct {
 } pos_t;
 
 static const pos_t _mouse_xy[] = {
-    {GunHID::mouse_max_x() / 2, GunHID::mouse_max_y() / 2},  // center
-    {GunHID::mouse_max_x() / 2, 0},                          // top
-    {GunHID::mouse_max_x() / 2, GunHID::mouse_max_y() - 1},  // bottom
-    {0, GunHID::mouse_max_y() / 2},                          // left
-    {GunHID::mouse_max_x() - 1, GunHID::mouse_max_y() / 2},  // right
-    {GunHID::mouse_max_x() / 2, GunHID::mouse_max_y() / 2},  // center
+    {GunHID::mouse_max_x >> 1, GunHID::mouse_max_y >> 1},  // center
+    {GunHID::mouse_max_x >> 1, 0},                          // top
+    {GunHID::mouse_max_x >> 1, GunHID::mouse_max_y - 1},  // bottom
+    {0, GunHID::mouse_max_y >> 1},                          // left
+    {GunHID::mouse_max_x - 1, GunHID::mouse_max_y >> 1},  // right
+    {GunHID::mouse_max_x >> 1, GunHID::mouse_max_y >> 1},  // center
 };
 
 void GunCalibration::setup(GunSettings *pref, GunHID *hid, GunCamera *cam) {
@@ -27,7 +27,7 @@ void GunCalibration::begin() {
     _stage    = Cali_Init;
     _ani_info = {0, 0, 0, 0, 0};
 
-    GunSettings::profile_data_t* pd = _prefernce->get_profile_data();
+    GunSettings::profile_data_t* pd = _prefernce->get_profile();
     _pd_save    = *pd;
     _prefernce->set_gun_mode(GunSettings::GunMode_Calibration);
 }
@@ -83,7 +83,7 @@ bool GunCalibration::loop(uint8_t buttons) {
     if (gunmode == GunSettings::GunMode_Calibration) {
         if (!is_mouse_move()) {
             if (_btn_trk.isPressed(GunSettings::BtnMask_Trigger)) {
-                GunSettings::profile_data_t* pd = _prefernce->get_profile_data();
+                GunSettings::profile_data_t* pd = _prefernce->get_profile();
                 OpenFIRE_Layout *layout = _cam->get_layout();
 
                 _stage++;
@@ -153,7 +153,7 @@ bool GunCalibration::loop(uint8_t buttons) {
             LOGV("Calibration done !!!\n");
             ret = false;
         } else if (_btn_trk.isPressed(GunSettings::BtnMask_B)) {
-            GunSettings::profile_data_t* pd = _prefernce->get_profile_data();
+            GunSettings::profile_data_t* pd = _prefernce->get_profile();
             *pd = _pd_save;
             LOGV("Cancel & Retry !!!\n");
             begin();
