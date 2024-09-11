@@ -19,42 +19,6 @@ class GunSettings : public GunDockCallback {
 *****************************************************************************************
 */
 #define MAX_PROFILE_CNT 4
-
-    enum ButtonIndex_e {
-        BtnIdx_Trigger = 0,
-        BtnIdx_A,
-        BtnIdx_B,
-        BtnIdx_Start,
-        BtnIdx_Select,
-        BtnIdx_Up,
-        BtnIdx_Down,
-        BtnIdx_Left,
-        BtnIdx_Right,
-        BtnIdx_Reload,
-        BtnIdx_Pedal,
-        BtnIdx_Pedal2,
-        BtnIdx_Pump,
-        BtnIdx_Home
-    };
-
-    // bit mask for each button, must match ButtonDesc[] order to match the proper button events
-    enum ButtonMask_e {
-        BtnMask_Trigger = 1 << BtnIdx_Trigger,
-        BtnMask_A       = 1 << BtnIdx_A,
-        BtnMask_B       = 1 << BtnIdx_B,
-        BtnMask_Start   = 1 << BtnIdx_Start,
-        BtnMask_Select  = 1 << BtnIdx_Select,
-        BtnMask_Up      = 1 << BtnIdx_Up,
-        BtnMask_Down    = 1 << BtnIdx_Down,
-        BtnMask_Left    = 1 << BtnIdx_Left,
-        BtnMask_Right   = 1 << BtnIdx_Right,
-        BtnMask_Reload  = 1 << BtnIdx_Reload,
-        BtnMask_Pedal   = 1 << BtnIdx_Pedal,
-        BtnMask_Pedal2  = 1 << BtnIdx_Pedal2,
-        BtnMask_Pump    = 1 << BtnIdx_Pump,
-        BtnMask_Home    = 1 << BtnIdx_Home
-    };
-
     enum RunMode_e {
         RunMode_Normal     = 0,  ///< Normal gun mode, no averaging
         RunMode_Average    = 1,  ///< 2 frame moving average

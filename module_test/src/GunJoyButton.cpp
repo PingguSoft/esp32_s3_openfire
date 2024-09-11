@@ -8,7 +8,8 @@ static GunJoyButton *_parent;
 bool GunJoyButton::timer_sw_pulse_task(pin_sw_info_t *sw_info) {
     if (sw_info->_val) {
         sw_info->_val = 0;
-        _parent->_buttons &= ~(1 << sw_info->_no);
+        _parent->_pad_buttons &= ~sw_info->_pad_evt;
+        _parent->_mouse_buttons &= ~sw_info->_mouse_evt;
     }
     return false;
 }
@@ -22,7 +23,8 @@ bool GunJoyButton::timer_sw_check_task(pin_sw_info_t *sw_info) {
         if (sw_info->_state != STATE_WAIT_RELEASE) {
             sw_info->_val = 1;
 
-            p->_buttons |= (1 << sw_info->_no);
+            p->_pad_buttons |= sw_info->_pad_evt;
+            _parent->_mouse_buttons |= sw_info->_mouse_evt;
             if (p->_auto_trg_rpt_delay > 0)
                 p->_timer->in(p->_auto_trg_rpt_delay / 2, timer_sw_pulse_task, sw_info);
         }
@@ -70,19 +72,19 @@ bool GunJoyButton::timer_adc_check_task(pin_sw_info_t *sw_info) {
     return true;
 }
 
-void GunJoyButton::add_button(uint8_t no, uint8_t gpio, uint8_t mode) {
+void GunJoyButton::add_button(uint8_t gpio, uint8_t mode, uint16_t mouse_evt, uint16_t pad_evt) {
     for (pin_sw_info_t *sw_info : _list_sw) {
         if (sw_info->_pin == gpio) {
             LOGE("%d pin exist\n", gpio);
             return;
         }
     }
-    pin_sw_info_t *t = new pin_sw_info_t(no, gpio, mode);
+    pin_sw_info_t *t = new pin_sw_info_t(gpio, mode, mouse_evt, pad_evt);
     _list_sw.push_back(t);
 }
 
-void GunJoyButton::setup(void (*cb)(int8_t x, int8_t y, uint8_t buttons), uint16_t auto_trg_delay,
-                         uint16_t auto_trg_rpt_delay) {
+void GunJoyButton::setup(void (*cb)(int8_t x, int8_t y, uint16_t pad_buttons, uint8_t mouse_buttons),
+                         uint16_t auto_trg_delay, uint16_t auto_trg_rpt_delay) {
     LOGV("setup !!!\n");
     _cb     = cb;
     _parent = this;
@@ -97,9 +99,10 @@ void GunJoyButton::setup(void (*cb)(int8_t x, int8_t y, uint8_t buttons), uint16
 }
 
 bool GunJoyButton::loop() {
-    int8_t  x        = _x;
-    int8_t  y        = _y;
-    uint8_t old_btns = _buttons;
+    int8_t   x         = _x;
+    int8_t   y         = _y;
+    uint16_t old_pad   = _pad_buttons;
+    uint8_t  old_mouse = _mouse_buttons;
 
     for (pin_sw_info_t *sw_info : _list_sw) {
         if (sw_info->_mode == ANALOG)
@@ -110,7 +113,8 @@ bool GunJoyButton::loop() {
             sw_info->_state = STATE_NONE;
             if (sw_info->_val) {
                 sw_info->_val = 0;
-                _buttons &= ~(1 << sw_info->_no);
+                _pad_buttons &= ~sw_info->_pad_evt;
+                _mouse_buttons &= ~sw_info->_mouse_evt;
             }
         } else {
             if (sw_info->_state == STATE_NONE) {
@@ -122,9 +126,9 @@ bool GunJoyButton::loop() {
 
     _timer->tick();
 
-    if (x != _x || y != y || _buttons != old_btns) {
+    if (x != _x || y != y || _pad_buttons != old_pad || _mouse_buttons != old_mouse) {
         if (_cb)
-            (*_cb)(_x, _y, _buttons);
+            (*_cb)(_x, _y, _pad_buttons, _mouse_buttons);
         return true;
     }
     return false;

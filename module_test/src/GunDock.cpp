@@ -6,7 +6,7 @@ void GunDock::process() {
 
     if (_stream->available()) {
         ch = _stream->read();
-        debug_printf("%2X [%c]\n", ch, ch);
+        // debug_printf("%2X [%c]\n", ch, ch);
 
         switch (_state) {
             case STATE_IDLE:

@@ -11,17 +11,17 @@
 #include "config.h"
 #include "debug.h"
 
-
 /*
 *****************************************************************************************
 * DATA TYPES
 *****************************************************************************************
 */
 typedef struct {
-    uint8_t     pin;
-    uint8_t     mode;
-    uint16_t    mouse_evt;
-    uint16_t    pad_evt;
+    uint8_t  pin;
+    uint8_t  mode;
+    uint16_t mouse_evt;
+    uint16_t pad_evt;
+    uint8_t  dock_evt;
 } pin_info_t;
 
 /*
@@ -36,15 +36,15 @@ typedef struct {
 *****************************************************************************************
 */
 static const pin_info_t _tbl_sw_pins[] = {
-    {PIN_TRIGGER, INPUT_PULLUP, MOUSE_LEFT, PAD_BUTTON_TR},
-    {PIN_BUTTON_A, INPUT_PULLUP, MOUSE_RIGHT, PAD_BUTTON_TL},
-    {PIN_BUTTON_B, INPUT_PULLUP, MOUSE_MIDDLE, PAD_BUTTON_Y},
-    {PIN_BUTTON_START, INPUT_PULLUP, -1, PAD_BUTTON_START},
-    {PIN_BUTTON_SELECT, INPUT_PULLUP, -1, PAD_BUTTON_SELECT},
+    {PIN_TRIGGER, INPUT_PULLUP, MOUSE_LEFT, PAD_BUTTON_TR, 1},
+    {PIN_BUTTON_A, INPUT_PULLUP, MOUSE_RIGHT, PAD_BUTTON_TL, 2},
+    {PIN_BUTTON_START, INPUT_PULLUP, 0, PAD_BUTTON_START, 5},
+    {PIN_BUTTON_SELECT, INPUT_PULLUP, 0, PAD_BUTTON_SELECT, 6},
+    {PIN_BUTTON_C, INPUT_PULLUP, MOUSE_BACKWARD, PAD_BUTTON_A, 11},
 
-    {PIN_JOY_ADC_Y, ANALOG, -1, -1},
-    {PIN_JOY_ADC_X, ANALOG, -1, -1},
-    {PIN_BUTTON_MODE, INPUT_PULLUP, MOUSE_BACKWARD, PAD_BUTTON_A},
+    {PIN_JOY_ADC_Y, ANALOG, 0, 0, 0},
+    {PIN_JOY_ADC_X, ANALOG, 0, 0, 0},
+    {PIN_BUTTON_B, INPUT_PULLUP, MOUSE_MIDDLE, PAD_BUTTON_Y, 3},
 };
 
 /*
@@ -115,20 +115,26 @@ class GunMain : public GunDockCallback {
                 uint8_t lvl = *pData - '0';
                 LOGV("ir brightness : %d\n", lvl);
                 _gunCam->update_setting();
-            }
-            break;
+            } break;
 
             case GunDock::CMD_TEST_FFB:
                 switch (*pData) {
-                    case 's':   // solenoid
+                    case 's':  // solenoid
+                    case 'r':  // rumble
+                        update_force_feedback(*pData);
+                        _gunFFB->trigger();
                         break;
-                    case 'r':   // rumble
+                    case 'R':  // LED
+                        _pixels->setPixelColor(0, _pixels->Color(255, 0, 0));
+                        _pixels->show();
                         break;
-                    case 'R':   // LED
+                    case 'G':  // LED
+                        _pixels->setPixelColor(0, _pixels->Color(0, 255, 0));
+                        _pixels->show();
                         break;
-                    case 'G':   // LED
-                        break;
-                    case 'B':   // LED
+                    case 'B':  // LED
+                        _pixels->setPixelColor(0, _pixels->Color(0, 0, 255));
+                        _pixels->show();
                         break;
                 }
                 break;
@@ -147,29 +153,9 @@ class GunMain : public GunDockCallback {
         }
     }
 
-    void process_joy(int8_t x, int8_t y, uint8_t buttons) {
-        static ButtonTracker btn_trk;
-
-        btn_trk.begin(buttons);
-
-        if (btn_trk.isToggled())
-            LOGV("x:%4d, y:%4d, buttons:%2x\n", x, y, buttons);
-
-        _gunHID->report_gamepad(x, y, 0, buttons);
-
-        if (btn_trk.isPressed(GunSettings::BtnMask_Trigger)) {
-            if (_gunFFB)
-                _gunFFB->trigger();
-            _gunHID->report_mouse(300, 300, 0);
-        } else if (btn_trk.isReleased(GunSettings::BtnMask_Trigger)) {
-            _gunHID->report_mouse(32768 / 2, 32768 / 2, 0);
-        }
-
-        btn_trk.end();
-    }
-
     void update_auto_trigger() {
-        if (_gunSettings->get_gun_mode() == GunSettings::GunMode_Calibration || !_gunSettings->get_feature_config()->autofireActive) {
+        if (_gunSettings->get_gun_mode() == GunSettings::GunMode_Calibration ||
+            !_gunSettings->get_feature_config()->autofireActive) {
             _gunJoy->set_auto_trigger(0, 0);
         } else if (_gunSettings->get_feature_config()->autofireActive) {
             GunSettings::params_map_t *params = _gunSettings->get_param_config();
@@ -177,12 +163,12 @@ class GunMain : public GunDockCallback {
         }
     }
 
-    void update_force_feedback() {
+    void update_force_feedback(uint8_t mode = 0) {
         GunSettings::params_map_t *params = _gunSettings->get_param_config();
 
-        if (_gunSettings->get_feature_config()->solenoidActive) {
+        if (mode == 's' || (mode == 0 && _gunSettings->get_feature_config()->solenoidActive)) {
             _gunFFB->setup(PIN_SOLENOID, params->solenoidFastInterval, _pixels, 0);
-        } else if (_gunSettings->get_feature_config()->rumbleActive) {
+        } else if (mode == 'r' || (mode == 0 && _gunSettings->get_feature_config()->rumbleActive)) {
             _gunFFB->setup(PIN_RUMBLE, params->solenoidFastInterval, _pixels, 0);
         }
         _gunFFB->set_power(params->rumbleIntensity);
@@ -190,6 +176,8 @@ class GunMain : public GunDockCallback {
 
     void setup() {
         bool is_cal_req;
+
+        _prv_mode = GunSettings::GunMode_Init;
 
         // load settings
         _gunSettings->setup();
@@ -205,7 +193,8 @@ class GunMain : public GunDockCallback {
 
         // joypad setting
         for (int i = 0; i < ARRAY_SIZE(_tbl_sw_pins); i++) {
-            _gunJoy->add_button(i, _tbl_sw_pins[i].pin, _tbl_sw_pins[i].mode);
+            _gunJoy->add_button(_tbl_sw_pins[i].pin, _tbl_sw_pins[i].mode, _tbl_sw_pins[i].mouse_evt,
+                                _tbl_sw_pins[i].pad_evt);
         }
         _gunJoy->setup();
         update_auto_trigger();
@@ -215,7 +204,6 @@ class GunMain : public GunDockCallback {
         // _gunHID = new GunHIDBLE("OpenFIRE", "FIRECon", 0xF143, 0x1998);
         _gunHID = new GunHIDUSB("OpenFIRE", "FIRECon", 0xF143, _gunSettings->get_usb_config()->devicePID);
         _gunHID->setup();
-
 
         // camera setup
         _gunCam->setup(_gunSettings);
@@ -227,89 +215,115 @@ class GunMain : public GunDockCallback {
             _gunCali->begin();
         }
 
+        // dock setup
         _gunDock = new GunDock(_gunHID->get_serial());
         _gunDock->set_callback(this);
     }
 
     void loop() {
-        int     ch;
-        int8_t  x, y;
-        uint8_t buttons;
+        bool                   update;
+        int8_t                 x, y;
+        uint16_t               pad_buttons;
+        uint8_t                mouse_buttons;
+        GunSettings::GunMode_e mode;
 
-        /*
-            if (_gunHID->get_serial()->available()) {
-                ch = _gunHID->get_serial()->read();
-                debug_printf("%02X ", ch);
-
-                switch (ch) {
-                    case '1':
-                        LOGV("auto trigger disabled\n");
-                        _gunJoy->set_auto_trigger(0, 0);
-                        break;
-
-                    case '2':
-                        LOGV("auto trigger enabled\n");
-                        _gunJoy->set_auto_trigger(300, 150);
-                        break;
-
-                    case '0':
-                        _gunSettings->load();
-                        break;
-
-                    case '[':
-                        LOGV("cali begin\n");
-                        _gunCali->begin();
-                        break;
-
-                    case ']':
-                        LOGV("cali end\n");
-                        _gunCali->end();
-                        break;
-                }
-            }
-        */
-
+        // process docking commands
         _gunDock->process();
 
-#if 0
-        bool update = _gunJoy->loop();
-        _gunJoy->get(&x, &y, &buttons);
+        // input button processing
+        update = _gunJoy->loop();
+        _gunJoy->get(&x, &y, &pad_buttons, &mouse_buttons);
+
+        // cam processing
         _gunCam->loop();
 
-        GunSettings::GunMode_e mode = _gunSettings->get_gun_mode();
+        // mode changed ?
+        mode = _gunSettings->get_gun_mode();
+        if (mode != _prv_mode) {
+            _btn_trk.reset();
+            _prv_mode = mode;
+        }
+
+        // mode specific works
         switch (mode) {
             case GunSettings::GunMode_Init:
                 break;
 
             case GunSettings::GunMode_Calibration:
             case GunSettings::GunMode_Verification:
-                if (!_gunCali->loop(buttons)) {
-                    _gunSettings->set_gun_mode(GunSettings::GunMode_Run);
+                if (!_gunCali->loop(pad_buttons)) {
+                    _gunCali->end();
                     update_auto_trigger();
                 }
                 break;
 
+            case GunSettings::GunMode_Docked:
+                _btn_trk.begin(pad_buttons);
+                for (int i = 0; i < ARRAY_SIZE(_tbl_sw_pins); i++) {
+                    if (_btn_trk.isPressed(_tbl_sw_pins[i].pad_evt)) {
+                        _gunDock->get_stream()->printf("Pressed: %d\r\n", _tbl_sw_pins[i].dock_evt);
+                    } else if (_btn_trk.isReleased(_tbl_sw_pins[i].pad_evt)) {
+                        _gunDock->get_stream()->printf("Released: %d\r\n", _tbl_sw_pins[i].dock_evt);
+                    }
+                }
+                x = map(_gunCam->x(), 0, GunHID::mouse_max_x, -127, 127);
+                y = map(_gunCam->y(), 0, GunHID::mouse_max_y, -127, 127);
+                _gunHID->report_gamepad(x, y, 0, pad_buttons);
+                proc_ir_test(_gunSettings, _gunCam);
+                _btn_trk.end();
+                break;
+
             case GunSettings::GunMode_Run:
-                if (_gunCam->avail())
-                    _gunHID->report_mouse(_gunCam->x(), _gunCam->y(), 0);
+                if (_gunCam->avail()) {
+                    _gunHID->report_mouse(_gunCam->x(), _gunCam->y(), mouse_buttons);
+                }
+                x = map(_gunCam->x(), 0, GunHID::mouse_max_x, -127, 127);
+                y = map(_gunCam->y(), 0, GunHID::mouse_max_y, -127, 127);
+                _gunHID->report_gamepad(x, y, 0, pad_buttons);
                 break;
         }
 
+        // force feed back processing
         _gunFFB->loop();
-#endif
     }
 
+    void proc_ir_test(GunSettings *settings, GunCamera *cam) {
+        GunSettings::profile_data_t *pd = settings->get_profile();
+        if (pd->runMode != GunSettings::RunMode_Processing)
+            return;
 
+        // RAW Camera Output mapped to screen res (1920x1080)
+        // RAW Output for viewing in processing sketch mapped to 1920x1080 screen resolution
+        char  buf[120];
+        char *pos = buf;
+
+        for (int i = 0; i < 4; i++) {
+            int rawX = map(cam->get_layout()->X(i), 0, 1023 << 2, 1920, 0);
+            int rawY = map(cam->get_layout()->Y(i), 0, 768 << 2, 0, 1080);
+            pos += sprintf(pos, "%d,%d,", rawX, rawY);
+        }
+
+        pos += sprintf(pos, "%d,%d,", cam->rx() >> 2, cam->ry() >> 2);
+
+        // Median for viewing in processing
+        int mx = map(cam->get_layout()->testMedianX(), 0, 1023 << 2, 1920, 0);
+        int my = map(cam->get_layout()->testMedianY(), 0, 768 << 2, 0, 1080);
+        pos += sprintf(pos, "%d,%d,\r\n", mx, my);
+        _gunDock->get_stream()->print(buf);
+    }
 
    private:
-    Adafruit_NeoPixel *_pixels;
-    GunHID            *_gunHID;
-    GunJoyButton      *_gunJoy;
-    GunFFB            *_gunFFB;
-    GunCamera         *_gunCam;
-    GunCalibration    *_gunCali;
-    GunSettings       *_gunSettings;
-    GunDock           *_gunDock;
+    Adafruit_NeoPixel     *_pixels;
+    GunHID                *_gunHID;
+    GunJoyButton          *_gunJoy;
+    GunFFB                *_gunFFB;
+    GunFFB                *_gunRumble;
+    GunCamera             *_gunCam;
+    GunCalibration        *_gunCali;
+    GunSettings           *_gunSettings;
+    GunDock               *_gunDock;
+    ButtonTracker          _btn_trk;
+    GunSettings::GunMode_e _prv_mode;
 };
 
 GunMain *_main = new GunMain();

@@ -41,7 +41,7 @@ class GunCamera {
    private:
     void        clk_init(int port, int mclk, uint32_t hz);
     void        update_last_seen();
-    static bool timer_camera_task(GunCamera *p);
+    static bool timer_camera_task(GunCamera *cam);
 
     Timer<1, millis, GunCamera *>     *_timer;
     DFRobotIRPositionEx               *_ir;

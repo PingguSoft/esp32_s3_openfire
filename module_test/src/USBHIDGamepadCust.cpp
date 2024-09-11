@@ -45,13 +45,13 @@ HID_COLLECTION ( HID_COLLECTION_APPLICATION )                 ,\
     HID_REPORT_COUNT   ( 1                                      ) ,\
     HID_REPORT_SIZE    ( 8                                      ) ,\
     HID_INPUT          ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE ) ,\
-    /* 8 bit Button Map */ \
+    /* 16 bit Button Map */ \
     HID_USAGE_PAGE     ( HID_USAGE_PAGE_BUTTON                  ) ,\
     HID_USAGE_MIN      ( 1                                      ) ,\
-    HID_USAGE_MAX      ( 8                                      ) ,\
+    HID_USAGE_MAX      ( 16                                     ) ,\
     HID_LOGICAL_MIN    ( 0                                      ) ,\
     HID_LOGICAL_MAX    ( 1                                      ) ,\
-    HID_REPORT_COUNT   ( 8                                      ) ,\
+    HID_REPORT_COUNT   ( 16                                     ) ,\
     HID_REPORT_SIZE    ( 1                                      ) ,\
     HID_INPUT          ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE ) ,\
 HID_COLLECTION_END \
@@ -60,7 +60,7 @@ typedef struct TU_ATTR_PACKED {
     int8_t  x;        ///< Delta x  movement of left analog-stick
     int8_t  y;        ///< Delta y  movement of left analog-stick
     uint8_t hat;      ///< Buttons mask for currently pressed buttons in the DPad/hat
-    uint8_t buttons;  ///< Buttons mask for currently pressed buttons
+    uint16_t buttons;  ///< Buttons mask for currently pressed buttons
 } hid_gamepad_report_cust_t;
 
 static const uint8_t report_descriptor[] = {
@@ -124,7 +124,7 @@ bool USBHIDGamepadCust::hat(uint8_t hat) {
     return write();
 }
 
-bool USBHIDGamepadCust::pressButton(uint8_t button) {
+bool USBHIDGamepadCust::pressButton(uint16_t button) {
     if (button > 31) {
         return false;
     }
@@ -132,7 +132,7 @@ bool USBHIDGamepadCust::pressButton(uint8_t button) {
     return write();
 }
 
-bool USBHIDGamepadCust::releaseButton(uint8_t button) {
+bool USBHIDGamepadCust::releaseButton(uint16_t button) {
     if (button > 31) {
         return false;
     }
@@ -140,7 +140,7 @@ bool USBHIDGamepadCust::releaseButton(uint8_t button) {
     return write();
 }
 
-bool USBHIDGamepadCust::send(int8_t x, int8_t y, uint8_t hat, uint8_t buttons) {
+bool USBHIDGamepadCust::send(int8_t x, int8_t y, uint8_t hat, uint16_t buttons) {
     if (hat > 9) {
         return false;
     }

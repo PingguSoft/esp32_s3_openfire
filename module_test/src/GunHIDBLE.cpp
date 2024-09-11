@@ -13,7 +13,7 @@ static BleCompositeHID *_bleCompositeHID;
 void GunHIDBLE::setup() {
     // Set up _gamepad
     GamepadConfiguration gamepadConfig;
-    gamepadConfig.setButtonCount(8);
+    gamepadConfig.setButtonCount(16);
     gamepadConfig.setHatSwitchCount(1);
     gamepadConfig.setWhichAxes(true, true, false, false, false, false, false, false);
     gamepadConfig.setAxesMin(-127);

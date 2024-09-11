@@ -1,6 +1,13 @@
+#include "GunFFB.h"
+
 #include "config.h"
 #include "debug.h"
-#include "GunFFB.h"
+
+
+GunFFB::GunFFB() {
+    set_power(200);
+    _timer = new Timer<1>();
+}
 
 void GunFFB::setup(uint8_t pin, uint16_t hold_delay, Adafruit_NeoPixel *pixel, uint8_t pos) {
     _gpio_pin   = pin;
@@ -8,7 +15,6 @@ void GunFFB::setup(uint8_t pin, uint16_t hold_delay, Adafruit_NeoPixel *pixel, u
     _pos        = pos;
     _hold_delay = hold_delay;
     _on         = false;
-    _timer      = new Timer<1>();
     pinMode(pin, OUTPUT);
     digitalWrite(pin, LOW);
 }

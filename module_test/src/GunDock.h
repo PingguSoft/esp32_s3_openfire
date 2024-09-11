@@ -28,6 +28,7 @@ class GunDock {
 
         CMD_EEPROM_UPDATE,
         CMD_TEST_FFB,
+        CMD_TEST_BUTTONS,
         CMD_REBOOT
     };
 
@@ -37,6 +38,7 @@ class GunDock {
         _callback = NULL;
     }
 
+    Stream *get_stream() { return _stream; }
     void set_callback(GunDockCallback *callback) { _callback = callback; }
     void process();
 

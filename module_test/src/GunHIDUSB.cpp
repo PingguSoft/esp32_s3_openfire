@@ -72,7 +72,7 @@ void GunHIDUSB::setup() {
     LOGV("setup !!!\n");
 }
 
-void GunHIDUSB::report_gamepad(int x, int y, uint8_t hat, uint8_t buttons) {
+void GunHIDUSB::report_gamepad(int x, int y, uint8_t hat, uint16_t buttons) {
     _gamepad->send(x, y, hat, buttons);
 }
 

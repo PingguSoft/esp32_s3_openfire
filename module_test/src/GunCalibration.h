@@ -12,10 +12,10 @@
 class GunCalibration {
    public:
     GunCalibration() {}
-    void setup(GunSettings *pref, GunHID *hid, GunCamera *cam);
+    void setup(GunSettings *settings, GunHID *hid, GunCamera *cam);
     void begin();
     void end();
-    bool loop(uint8_t buttons);
+    bool loop(uint16_t buttons);
 
    private:
     void        mouse_ani_begin(int8_t stage);
@@ -34,12 +34,12 @@ class GunCalibration {
 
     GunHID                             *_hid;
     GunCamera                          *_cam;
-    GunSettings                     *_prefernce;
+    GunSettings                        *_settings;
     Timer<1, millis, GunCalibration *> *_timer;
     int8_t                              _stage;
-    ButtonTracker                       _btn_trk;
     struct _ani                         _ani_info;
-    GunSettings::profile_data_t       _pd_save;
+    ButtonTracker                       _btn_trk;
+    GunSettings::profile_data_t         _pd_save;
 };
 
 #endif

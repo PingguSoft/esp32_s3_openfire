@@ -1,7 +1,11 @@
+#include "GunSettings.h"
+
 #include <Arduino.h>
 #include <EEPROM.h>
-#include "GunSettings.h"
+
+#include "GunJoyButton.h"
 #include "debug.h"
+
 
 // 4 byte header ID
 const GunSettings::header_id_t GunSettings::_header_id = {'O', 'F', '0', '1'};
@@ -9,28 +13,24 @@ const GunSettings::header_id_t GunSettings::_header_id = {'O', 'F', '0', '1'};
 GunSettings::profiles_t GunSettings::_profiles = {
     MAX_PROFILE_CNT,
     0,
-    {{0, 0, 0, 0, 500 << 2, 1420 << 2, 512 << 2, 384 << 2, 0, GunSettings::RunMode_Average, GunSettings::BtnMask_A,
-      true, 0xFF0000, "Profile A"},
-     {0, 0, 0, 0, 500 << 2, 1420 << 2, 512 << 2, 384 << 2, 0, GunSettings::RunMode_Average, GunSettings::BtnMask_B,
-      true, 0x00FF00, "Profile B"},
-     {0, 0, 0, 0, 500 << 2, 1420 << 2, 512 << 2, 384 << 2, 0, GunSettings::RunMode_Average, GunSettings::BtnMask_Start,
-      true, 0x0000FF, "Profile Start"},
-     {0, 0, 0, 0, 500 << 2, 1420 << 2, 512 << 2, 384 << 2, 0, GunSettings::RunMode_Average, GunSettings::BtnMask_Select,
-      true, 0xFF00FF, "Profile Select"}},
+    {{0, 0, 0, 0, 500 << 2, 1420 << 2, 512 << 2, 384 << 2, 0, GunSettings::RunMode_Average, PAD_BUTTON_A, true,
+      0xFF0000, "Profile A"},
+     {0, 0, 0, 0, 500 << 2, 1420 << 2, 512 << 2, 384 << 2, 0, GunSettings::RunMode_Average, PAD_BUTTON_B, true,
+      0x00FF00, "Profile B"},
+     {0, 0, 0, 0, 500 << 2, 1420 << 2, 512 << 2, 384 << 2, 0, GunSettings::RunMode_Average, PAD_BUTTON_START, true,
+      0x0000FF, "Profile Start"},
+     {0, 0, 0, 0, 500 << 2, 1420 << 2, 512 << 2, 384 << 2, 0, GunSettings::RunMode_Average, PAD_BUTTON_SELECT, true,
+      0xFF00FF, "Profile Select"}},
 };
 
-GunSettings::feature_map_t GunSettings::_features = {
-    false, true, true, false, false, false, true, false, false
-};
+GunSettings::feature_map_t GunSettings::_features = {false, true, true, false, false, false, true, false, false};
 
 GunSettings::pins_map_t GunSettings::_pins = {
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
 };
 
-GunSettings::params_map_t GunSettings::_params = {
-    255,  150, 45, 30, 500, 3, 2500, 1,   0,  0xFF0000, 0x00FF00, 0x0000FF
-};
+GunSettings::params_map_t GunSettings::_params = {255, 150, 45, 30, 500, 3, 2500, 1, 0, 0xFF0000, 0x00FF00, 0x0000FF};
 
 GunSettings::usb_map_t GunSettings::_usb = {
     "SERIALREADERR01",
@@ -94,17 +94,22 @@ void GunSettings::onCallback(uint8_t cmd, uint8_t *pData, uint16_t size, Stream 
             break;
 
         case GunDock::CMD_DOCK_MODE:
-            LOGV("docked mode\n");
-            set_gun_mode(GunSettings::GunMode_Docked);
-            stream->printf("OpenFIRE,%.1f,%s,%s,%i\r\n", OPENFIRE_VERSION, OPENFIRE_CODENAME, OPENFIRE_BOARD,
-                           get_profile_idx());
+            if (*pData) {
+                LOGV("docked mode\n");
+                set_gun_mode(GunSettings::GunMode_Docked);
+                stream->printf("OpenFIRE,%.1f,%s,%s,%i\r\n", OPENFIRE_VERSION, OPENFIRE_CODENAME, OPENFIRE_BOARD,
+                               get_profile_idx());
+            } else {
+                LOGV("docked mode exit\n");
+                set_gun_mode(GunSettings::GunMode_Run);
+            }
             break;
 
         case GunDock::CMD_EEPROM_READ_TOGGLES:
             LOGV("toggles\n");
             stream->printf("%i,%i,%i,%i,%i,%i,%i,%i,%i\r\n", _features.customPinsInUse, _features.rumbleActive,
-                           _features.solenoidActive, _features.autofireActive, _features.simpleMenu, _features.holdToPause,
-                           _features.commonAnode, _features.lowButtonMode, _features.rumbleFF);
+                           _features.solenoidActive, _features.autofireActive, _features.simpleMenu,
+                           _features.holdToPause, _features.commonAnode, _features.lowButtonMode, _features.rumbleFF);
             break;
 
         case GunDock::CMD_EEPROM_READ_PINS:
@@ -120,11 +125,11 @@ void GunSettings::onCallback(uint8_t cmd, uint8_t *pData, uint16_t size, Stream 
 
         case GunDock::CMD_EEPROM_READ_SETTINGS:
             LOGV("settings\n");
-            stream->printf("%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i\r\n", _params.rumbleIntensity,
-                           _params.rumbleInterval, _params.solenoidNormalInterval, _params.solenoidFastInterval,
-                           _params.solenoidLongInterval, _params.autofireWaitFactor, _params.pauseHoldLength,
-                           _params.customLEDcount, _params.customLEDstatic, _params.customLEDcolor1,
-                           _params.customLEDcolor2, _params.customLEDcolor3);
+            stream->printf("%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i\r\n", _params.rumbleIntensity, _params.rumbleInterval,
+                           _params.solenoidNormalInterval, _params.solenoidFastInterval, _params.solenoidLongInterval,
+                           _params.autofireWaitFactor, _params.pauseHoldLength, _params.customLEDcount,
+                           _params.customLEDstatic, _params.customLEDcolor1, _params.customLEDcolor2,
+                           _params.customLEDcolor3);
             break;
 
         case GunDock::CMD_EEPROM_READ_USB:
@@ -142,9 +147,8 @@ void GunSettings::onCallback(uint8_t cmd, uint8_t *pData, uint16_t size, Stream 
                 LOGV("profile : %d\n", idx);
                 stream->printf("%i,%i,%i,%i,%.2f,%.2f,%i,%i,%i,%i,%s\r\n", get_profile(idx)->topOffset,
                                get_profile(idx)->bottomOffset, get_profile(idx)->leftOffset,
-                               get_profile(idx)->rightOffset, get_profile(idx)->TLled,
-                               get_profile(idx)->TRled, get_profile(idx)->irSensitivity,
-                               get_profile(idx)->runMode, get_profile(idx)->irLayout,
+                               get_profile(idx)->rightOffset, get_profile(idx)->TLled, get_profile(idx)->TRled,
+                               get_profile(idx)->irSensitivity, get_profile(idx)->runMode, get_profile(idx)->irLayout,
                                get_profile(idx)->color, get_profile(idx)->name);
             }
             break;
@@ -154,7 +158,7 @@ void GunSettings::onCallback(uint8_t cmd, uint8_t *pData, uint16_t size, Stream 
                 get_profile()->runMode = _runmode_saved;
                 stream->printf("Exiting processing mode...\r\n");
             } else {
-                _runmode_saved              = get_profile()->runMode;
+                _runmode_saved         = get_profile()->runMode;
                 get_profile()->runMode = RunMode_Processing;
                 stream->printf("Entering Test Mode...\r\n");
             }
@@ -257,7 +261,7 @@ void GunSettings::onCallback(uint8_t cmd, uint8_t *pData, uint16_t size, Stream 
                     }
                     break;
 
-                case 'P': // profile data
+                case 'P':  // profile data
                     p1 = atoi(tokens[2]);
                     p2 = atoi(tokens[3]);
 

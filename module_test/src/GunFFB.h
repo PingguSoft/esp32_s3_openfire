@@ -16,7 +16,7 @@
 */
 class GunFFB {
    public:
-    GunFFB() { set_power(200); }
+    GunFFB();
 
     void setup(uint8_t pin, uint16_t hold_delay, Adafruit_NeoPixel *pixel = NULL, uint8_t pos = 0);
     void loop();

@@ -48,122 +48,60 @@ void printResult(const int x[], const int y[], const int seen) {
     LOGV("%4x : (%4d, %4d), (%4d, %6d), (%4d, %4d), (%4d, %4d)\n", seen, x[0], y[0], x[1], y[1], x[2], y[2], x[3], y[3]);
 }
 
-bool GunCamera::timer_camera_task(GunCamera *p) {
-    int error = p->_ir->basicAtomic(DFRobotIRPositionEx::Retry_2);
+bool GunCamera::timer_camera_task(GunCamera *cam) {
+    int error = cam->_ir->basicAtomic(DFRobotIRPositionEx::Retry_2);
 
     if (error == DFRobotIRPositionEx::Error_Success) {
-        if (p->_settings->get_gun_mode() == GunSettings::GunMode_Calibration) {
-            if (p->_ir->seen() != p->_last_seen) {
-                LOGV("IR detected %d %X\n", p->_ir->avail(), p->_ir->seen());
+        if (cam->_settings->get_gun_mode() == GunSettings::GunMode_Calibration) {
+            if (cam->_ir->seen() != cam->_last_seen) {
+                LOGV("IR detected %d %X\n", cam->_ir->avail(), cam->_ir->seen());
             }
         }
 
-        p->_layout->begin(p->_ir->xPositions(), p->_ir->yPositions(), p->_ir->seen());
-        p->_perspective->warp(p->_layout->X(0), p->_layout->Y(0), p->_layout->X(1), p->_layout->Y(1), p->_layout->X(2),
-                              p->_layout->Y(2), p->_layout->X(3), p->_layout->Y(3), res_x / 2, 0, 0, res_y / 2,
+        cam->_layout->begin(cam->_ir->xPositions(), cam->_ir->yPositions(), cam->_ir->seen());
+        cam->_perspective->warp(cam->_layout->X(0), cam->_layout->Y(0), cam->_layout->X(1), cam->_layout->Y(1), cam->_layout->X(2),
+                              cam->_layout->Y(2), cam->_layout->X(3), cam->_layout->Y(3), res_x / 2, 0, 0, res_y / 2,
                               res_x / 2, res_y, res_x, res_y / 2);
 
         // Output mapped to screen resolution because offsets are measured in pixels
-        GunSettings::profile_data_t *pd = p->_settings->get_profile();
-        int x = map(p->_perspective->getX(), 0, res_x, (0 - pd->leftOffset), (res_x + pd->rightOffset));
-        int y = map(p->_perspective->getY(), 0, res_y, (0 - pd->topOffset), (res_y + pd->bottomOffset));
+        GunSettings::profile_data_t *pd = cam->_settings->get_profile();
+        int x = map(cam->_perspective->getX(), 0, res_x, (0 - pd->leftOffset), (res_x + pd->rightOffset));
+        int y = map(cam->_perspective->getY(), 0, res_y, (0 - pd->topOffset), (res_y + pd->bottomOffset));
 
         switch (pd->runMode) {
             case GunSettings::RunMode_Average:
                 // 2 position moving average
-                p->_idx ^= 1;
-                p->_xAxisArr[p->_idx] = x;
-                p->_yAxisArr[p->_idx] = y;
-                x                 = (p->_xAxisArr[0] + p->_xAxisArr[1]) / 2;
-                y                 = (p->_yAxisArr[0] + p->_yAxisArr[1]) / 2;
+                cam->_idx ^= 1;
+                cam->_xAxisArr[cam->_idx] = x;
+                cam->_yAxisArr[cam->_idx] = y;
+                x                 = (cam->_xAxisArr[0] + cam->_xAxisArr[1]) / 2;
+                y                 = (cam->_yAxisArr[0] + cam->_yAxisArr[1]) / 2;
                 break;
 
             case GunSettings::RunMode_Average2:
                 // weighted average of current position and previous 2
-                p->_idx = (p->_idx < 2) ? (p->_idx + 1) : 0;
-                p->_xAxisArr[p->_idx] = x;
-                p->_yAxisArr[p->_idx] = y;
-                x                 = (x + p->_xAxisArr[0] + p->_xAxisArr[1] + p->_xAxisArr[2]) / 4;
-                y                 = (y + p->_yAxisArr[0] + p->_yAxisArr[1] + p->_yAxisArr[2]) / 4;
+                cam->_idx = (cam->_idx < 2) ? (cam->_idx + 1) : 0;
+                cam->_xAxisArr[cam->_idx] = x;
+                cam->_yAxisArr[cam->_idx] = y;
+                x                 = (x + cam->_xAxisArr[0] + cam->_xAxisArr[1] + cam->_xAxisArr[2]) / 4;
+                y                 = (y + cam->_yAxisArr[0] + cam->_yAxisArr[1] + cam->_yAxisArr[2]) / 4;
                 break;
 
             default:
                 break;
         }
 
-        p->_rx = x;
-        p->_ry = y;
+        cam->_rx = x;
+        cam->_ry = y;
 
         // Constrain that bisch so negatives don't cause underflow
         int cx = constrain(x, 0, res_x);
         int cy = constrain(y, 0, res_y);
 
         // Output mapped to Mouse resolution
-        p->_x = map(cx, 0, res_x, 0, 32767);
-        p->_y = map(cy, 0, res_y, 0, 32767);
-
-        p->update_last_seen();
-
-#if 0
-        GunPreferences::GunMode_e gunMode = p->_settings->get_gun_mode();
-        if (gunMode == GunPreferences::GunMode_Run) {
-            p->update_last_seen();
-
-            // if (serialARcorrection) {
-            //     p->_x = map(p->_x, 4147, 28697, 0, 32767);
-            //     p->_x = constrain(p->_x, 0, 32767);
-            // }
-
-            bool offXAxis = false;
-            bool offYAxis = false;
-
-            if (p->_x == 0 || p->_x == 32767) {
-                offXAxis = true;
-            }
-
-            if (p->_y == 0 || p->_y == 32767) {
-                offYAxis = true;
-            }
-
-            // if (offXAxis || offYAxis) {
-            //     buttons.offScreen = true;
-            // } else {
-            //     buttons.offScreen = false;
-            // }
-
-            // if (buttons.analogOutput) {
-            //     Gamepad16.moveCam(p->_x, p->_y);
-            // } else {
-            //     AbsMouse5.move(p->_x, p->_y);
-            // }
-        } else {
-            // RAW Camera Output mapped to screen res (1920x1080)
-            int rawX[4];
-            int rawY[4];
-
-            // RAW Output for viewing in processing sketch mapped to 1920x1080 screen resolution
-            if (pd->irLayout) {
-                for (int i = 0; i < 4; i++) {
-                    rawX[i] = map(p->_layout->X(i), 0, 1023 << 2, 1920, 0);
-                    rawY[i] = map(p->_layout->Y(i), 0, 768 << 2, 0, 1080);
-                }
-            }
-            if (pd->runMode == GunPreferences::RunMode_Processing) {
-                int mx, my;
-
-                if (pd->irLayout) {
-                    // Median for viewing in processing
-                    mx = map(p->_layout->testMedianX(), 0, 1023 << 2, 1920, 0);
-                    my = map(p->_layout->testMedianY(), 0, 768 << 2, 0, 1080);
-                }
-                // LOGV("(%4d, %4d), (%4d, %4d), (%4d, %4d), (%4d, %4d) => (%4d, %4d), (%4d, %4d)\n", rawX[0], rawY[0],
-                //      rawX[1], rawY[1], rawX[2], rawY[2], rawX[3], rawY[3], x >> 2, y >> 2, mx, my);
-            }
-#ifdef USES_DISPLAY
-            OLED.DrawVisibleIR(rawX, rawY);
-#endif  // USES_DISPLAY
-        }
-#endif
+        cam->_x = map(cx, 0, res_x, 0, 32767);
+        cam->_y = map(cy, 0, res_y, 0, 32767);
+        cam->update_last_seen();
     } else if (error != DFRobotIRPositionEx::Error_DataMismatch) {
         LOGE("Device not available!\n");
     }

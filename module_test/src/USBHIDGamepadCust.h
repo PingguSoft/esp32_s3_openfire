@@ -30,7 +30,7 @@ class USBHIDGamepadCust : public USBHIDDevice {
     int8_t  _rx;       ///< Delta Rx movement of analog left trigger
     int8_t  _ry;       ///< Delta Ry movement of analog right trigger
     uint8_t _hat;      ///< Buttons mask for currently pressed buttons in the DPad/hat
-    uint8_t _buttons;  ///< Buttons mask for currently pressed buttons
+    uint16_t _buttons;  ///< Buttons mask for currently pressed buttons
     bool    write();
 
    public:
@@ -46,10 +46,10 @@ class USBHIDGamepadCust : public USBHIDDevice {
 
     bool hat(uint8_t hat);
 
-    bool pressButton(uint8_t button);
-    bool releaseButton(uint8_t button);
+    bool pressButton(uint16_t button);
+    bool releaseButton(uint16_t button);
 
-    bool send(int8_t x, int8_t y, uint8_t hat, uint8_t buttons);
+    bool send(int8_t x, int8_t y, uint8_t hat, uint16_t buttons);
 
     // internal use
     uint16_t _onGetDescriptor(uint8_t* buffer);

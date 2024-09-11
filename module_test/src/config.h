@@ -37,7 +37,7 @@
 #define PIN_JOY_ADC_Y        5
 #define PIN_BUTTON_START     6
 #define PIN_BUTTON_SELECT    7
-#define PIN_BUTTON_MODE     15
+#define PIN_BUTTON_C        15
 #define PIN_BUTTON_A        16
 
 
