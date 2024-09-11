@@ -18,37 +18,7 @@
 
 /// Standard Gamepad Buttons Naming from Linux input event codes
 /// https://github.com/torvalds/linux/blob/master/include/uapi/linux/input-event-codes.h
-#define BUTTON_A      0
-#define BUTTON_B      1
-#define BUTTON_C      2
-#define BUTTON_X      3
-#define BUTTON_Y      4
-#define BUTTON_Z      5
-#define BUTTON_TL     6
-#define BUTTON_TR     7
-#define BUTTON_TL2    8
-#define BUTTON_TR2    9
-#define BUTTON_SELECT 10
-#define BUTTON_START  11
-#define BUTTON_MODE   12
-#define BUTTON_THUMBL 13
-#define BUTTON_THUMBR 14
 
-#define BUTTON_SOUTH BUTTON_A
-#define BUTTON_EAST  BUTTON_B
-#define BUTTON_NORTH BUTTON_X
-#define BUTTON_WEST  BUTTON_Y
-
-/// Standard Gamepad HAT/DPAD Buttons (from Linux input event codes)
-#define HAT_CENTER     0
-#define HAT_UP         1
-#define HAT_UP_RIGHT   2
-#define HAT_RIGHT      3
-#define HAT_DOWN_RIGHT 4
-#define HAT_DOWN       5
-#define HAT_DOWN_LEFT  6
-#define HAT_LEFT       7
-#define HAT_UP_LEFT    8
 
 class USBHIDGamepadCust : public USBHIDDevice {
    private:

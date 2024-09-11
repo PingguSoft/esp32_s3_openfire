@@ -45,7 +45,7 @@ HID_COLLECTION ( HID_COLLECTION_APPLICATION )                 ,\
     HID_REPORT_COUNT   ( 1                                      ) ,\
     HID_REPORT_SIZE    ( 8                                      ) ,\
     HID_INPUT          ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE ) ,\
-    /* 32 bit Button Map */ \
+    /* 8 bit Button Map */ \
     HID_USAGE_PAGE     ( HID_USAGE_PAGE_BUTTON                  ) ,\
     HID_USAGE_MIN      ( 1                                      ) ,\
     HID_USAGE_MAX      ( 8                                      ) ,\

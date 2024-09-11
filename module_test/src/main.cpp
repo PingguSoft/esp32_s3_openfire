@@ -18,8 +18,10 @@
 *****************************************************************************************
 */
 typedef struct {
-    uint8_t pin;
-    uint8_t mode;
+    uint8_t     pin;
+    uint8_t     mode;
+    uint16_t    mouse_evt;
+    uint16_t    pad_evt;
 } pin_info_t;
 
 /*
@@ -34,10 +36,15 @@ typedef struct {
 *****************************************************************************************
 */
 static const pin_info_t _tbl_sw_pins[] = {
-    {PIN_TRIGGER, INPUT_PULLUP},      {PIN_BUTTON_A, INPUT_PULLUP},      {PIN_BUTTON_B, INPUT_PULLUP},
-    {PIN_BUTTON_START, INPUT_PULLUP}, {PIN_BUTTON_SELECT, INPUT_PULLUP},
+    {PIN_TRIGGER, INPUT_PULLUP, MOUSE_LEFT, PAD_BUTTON_TR},
+    {PIN_BUTTON_A, INPUT_PULLUP, MOUSE_RIGHT, PAD_BUTTON_TL},
+    {PIN_BUTTON_B, INPUT_PULLUP, MOUSE_MIDDLE, PAD_BUTTON_Y},
+    {PIN_BUTTON_START, INPUT_PULLUP, -1, PAD_BUTTON_START},
+    {PIN_BUTTON_SELECT, INPUT_PULLUP, -1, PAD_BUTTON_SELECT},
 
-    {PIN_JOY_ADC_Y, ANALOG},          {PIN_JOY_ADC_X, ANALOG},           {PIN_BUTTON_MODE, INPUT_PULLUP},
+    {PIN_JOY_ADC_Y, ANALOG, -1, -1},
+    {PIN_JOY_ADC_X, ANALOG, -1, -1},
+    {PIN_BUTTON_MODE, INPUT_PULLUP, MOUSE_BACKWARD, PAD_BUTTON_A},
 };
 
 /*

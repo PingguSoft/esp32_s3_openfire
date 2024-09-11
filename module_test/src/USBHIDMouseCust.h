@@ -23,13 +23,6 @@
 #include "USBHID.h"
 #if CONFIG_TINYUSB_HID_ENABLED
 
-#define MOUSE_LEFT     0x01
-#define MOUSE_RIGHT    0x02
-#define MOUSE_MIDDLE   0x04
-#define MOUSE_BACKWARD 0x08
-#define MOUSE_FORWARD  0x10
-#define MOUSE_ALL      0x1F
-
 class USBHIDMouseCust : public USBHIDDevice {
    private:
     typedef struct TU_ATTR_PACKED {
