@@ -24,9 +24,9 @@
 #define MOUSE_ALL      0x1F
 
 // pad axis
-#define PAD_AXIS_X        _BV(31)
-#define PAD_AXIS_Y        _BV(30)
-#define PAD_AXIS_Z        _BV(29)
+#define PAD_AXIS_X _BV(31)
+#define PAD_AXIS_Y _BV(30)
+#define PAD_AXIS_Z _BV(29)
 
 // pad button number
 #define PAD_BUTTON_A      _BV(0)
@@ -61,6 +61,11 @@
 #define PAD_HAT_LEFT       7
 #define PAD_HAT_UP_LEFT    8
 
+#define PAD_HAT_MASK_X_P   0x01
+#define PAD_HAT_MASK_Y_P   0x02
+#define PAD_HAT_MASK_X_M   0x04
+#define PAD_HAT_MASK_Y_M   0x08
+
 /*
 *****************************************************************************************
 * GunJoyButton
@@ -68,22 +73,38 @@
 */
 class GunJoyButton {
    public:
-    GunJoyButton() : _x(0), _y(0), _pad_buttons(0), _mouse_buttons(0) { set_auto_trigger(300, 150); }
+    typedef struct gun_joy_report {
+        int8_t   x;
+        int8_t   y;
+        uint8_t  hat;
+        uint8_t  mouse_buttons;
+        uint32_t pad_buttons;
+
+        gun_joy_report() : x(0), y(0), hat(0), mouse_buttons(0), pad_buttons(0) {}
+
+        bool inline operator==(struct gun_joy_report &rep) {
+            return (hat == rep.hat && pad_buttons == rep.pad_buttons && mouse_buttons == rep.mouse_buttons);
+        }
+        bool inline operator!=(struct gun_joy_report &rep) {
+            return (hat != rep.hat || pad_buttons != rep.pad_buttons || mouse_buttons != rep.mouse_buttons);
+        }
+    } report_t;
+
+    GunJoyButton() {
+        memset(&_report, 0, sizeof(_report));
+        set_auto_trigger(300, 150);
+    }
 
     void set_auto_trigger(uint16_t auto_trg_delay, uint16_t auto_trg_rpt_delay) {
         _auto_trg_delay     = auto_trg_delay;
         _auto_trg_rpt_delay = auto_trg_rpt_delay;
     }
-    void add_button(uint8_t gpio, uint8_t mode, uint16_t mouse_evt, uint32_t pad_evt);
-    void setup(void (*cb)(int8_t x, int8_t y, uint16_t pad_buttons, uint8_t mouse_buttons) = NULL,
-               uint16_t auto_trg_delay = 0, uint16_t auto_trg_rpt_delay = 0);
-    bool loop();
-    void get(int8_t *x, int8_t *y, uint16_t *pad_buttons, uint8_t *mouse_buttons) {
-        *x             = _x;
-        *y             = _y;
-        *pad_buttons   = _pad_buttons;
-        *mouse_buttons = _mouse_buttons;
-    }
+    void      add_button(uint8_t gpio, uint8_t mode, uint16_t mouse_evt, uint32_t pad_evt);
+    void      setup(void (*cb)(report_t *report) = NULL, uint16_t auto_trg_delay = 0, uint16_t auto_trg_rpt_delay = 0);
+    bool      loop();
+    report_t *get() { return &_report; }
+    void      get(report_t *report) { *report = _report; }
+    uint8_t   get_hat_mask() { return _hat_mask; }
 
    private:
     enum { STATE_NONE = 0, STATE_DEBOUNCE, STATE_AUTO_TRG_DELAY, STATE_AUTO_TRG_RPT_DELAY, STATE_WAIT_RELEASE };
@@ -99,24 +120,24 @@ class GunJoyButton {
             : _pin(pin), _mode(mode), _mouse_evt(mouse_evt), _pad_evt(pad_evt) {}
     } pin_sw_info_t;
 
-    static bool timer_sw_check_task(pin_sw_info_t *state);
-    static bool timer_sw_pulse_task(pin_sw_info_t *state);
-    static bool timer_adc_check_task(pin_sw_info_t *state);
+    static bool          timer_sw_check_task(pin_sw_info_t *state);
+    static bool          timer_sw_pulse_task(pin_sw_info_t *state);
+    static bool          timer_adc_check_task(pin_sw_info_t *state);
+    const static uint8_t _tbl_hat[];
 
     Timer<16, millis, pin_sw_info_t *> *_timer;
     uint16_t                            _auto_trg_delay;
     uint16_t                            _auto_trg_rpt_delay;
     std::list<pin_sw_info_t *>          _list_sw;
-    int8_t                              _x, _y;
-    uint32_t                            _pad_buttons;
-    uint8_t                             _mouse_buttons;
-    void (*_cb)(int8_t x, int8_t y, uint16_t pad_buttons, uint8_t mouse_buttons);
+    report_t                            _report;
+    uint8_t                             _hat_mask;
+    void (*_cb)(report_t *report);
 };
 
 class ButtonTracker {
    public:
     ButtonTracker(int shift = 0) {
-        _shift  = shift;
+        _shift = shift;
         reset();
     }
 
