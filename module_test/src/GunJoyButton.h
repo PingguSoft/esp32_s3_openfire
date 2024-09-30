@@ -23,6 +23,11 @@
 #define MOUSE_FORWARD  0x10
 #define MOUSE_ALL      0x1F
 
+// pad axis
+#define PAD_AXIS_X        _BV(31)
+#define PAD_AXIS_Y        _BV(30)
+#define PAD_AXIS_Z        _BV(29)
+
 // pad button number
 #define PAD_BUTTON_A      _BV(0)
 #define PAD_BUTTON_B      _BV(1)
@@ -46,15 +51,15 @@
 #define PAD_BUTTON_WEST  BUTTON_Y
 
 /// Standard Gamepad HAT/DPAD Buttons (from Linux input event codes)
-#define PAS_HAT_CENTER     0
-#define PAS_HAT_UP         1
-#define PAS_HAT_UP_RIGHT   2
-#define PAS_HAT_RIGHT      3
-#define PAS_HAT_DOWN_RIGHT 4
-#define PAS_HAT_DOWN       5
-#define PAS_HAT_DOWN_LEFT  6
-#define PAS_HAT_LEFT       7
-#define PAS_HAT_UP_LEFT    8
+#define PAD_HAT_CENTER     0
+#define PAD_HAT_UP         1
+#define PAD_HAT_UP_RIGHT   2
+#define PAD_HAT_RIGHT      3
+#define PAD_HAT_DOWN_RIGHT 4
+#define PAD_HAT_DOWN       5
+#define PAD_HAT_DOWN_LEFT  6
+#define PAD_HAT_LEFT       7
+#define PAD_HAT_UP_LEFT    8
 
 /*
 *****************************************************************************************
@@ -69,7 +74,7 @@ class GunJoyButton {
         _auto_trg_delay     = auto_trg_delay;
         _auto_trg_rpt_delay = auto_trg_rpt_delay;
     }
-    void add_button(uint8_t gpio, uint8_t mode, uint16_t pad_evt, uint16_t mouse_evt);
+    void add_button(uint8_t gpio, uint8_t mode, uint16_t mouse_evt, uint32_t pad_evt);
     void setup(void (*cb)(int8_t x, int8_t y, uint16_t pad_buttons, uint8_t mouse_buttons) = NULL,
                uint16_t auto_trg_delay = 0, uint16_t auto_trg_rpt_delay = 0);
     bool loop();
@@ -89,8 +94,8 @@ class GunJoyButton {
         int8_t   _val;
         uint8_t  _state;
         uint16_t _mouse_evt;
-        uint16_t _pad_evt;
-        pin_sw_info(uint8_t pin, uint8_t mode, uint16_t mouse_evt, uint16_t pad_evt)
+        uint32_t _pad_evt;
+        pin_sw_info(uint8_t pin, uint8_t mode, uint16_t mouse_evt, uint32_t pad_evt)
             : _pin(pin), _mode(mode), _mouse_evt(mouse_evt), _pad_evt(pad_evt) {}
     } pin_sw_info_t;
 
@@ -103,7 +108,7 @@ class GunJoyButton {
     uint16_t                            _auto_trg_rpt_delay;
     std::list<pin_sw_info_t *>          _list_sw;
     int8_t                              _x, _y;
-    uint16_t                            _pad_buttons;
+    uint32_t                            _pad_buttons;
     uint8_t                             _mouse_buttons;
     void (*_cb)(int8_t x, int8_t y, uint16_t pad_buttons, uint8_t mouse_buttons);
 };

@@ -61,18 +61,21 @@ bool GunJoyButton::timer_adc_check_task(pin_sw_info_t *sw_info) {
     for (pin_sw_info_t *sw : _parent->_list_sw) {
         if (sw->_mode == ANALOG) {
             uint16_t v = analogRead(sw->_pin);
-            sw->_val   = map(v, 0, 4095, -127, 127);
 
-            if (sw->_pin == PIN_JOY_ADC_X)
+            v = constrain(v, 500, 2800);
+            sw->_val   = map(v, 500, 2800, -127, 127);
+            if (sw->_pad_evt & PAD_AXIS_X) {
                 _parent->_x = sw->_val;
-            else if (sw->_pin == PIN_JOY_ADC_Y)
+                // LOGV("%2d, %5d, %5d\n", sw->_pin, v, sw->_val);
+            }
+            else if (sw->_pad_evt & PAD_AXIS_Y)
                 _parent->_y = sw->_val;
         }
     }
     return true;
 }
 
-void GunJoyButton::add_button(uint8_t gpio, uint8_t mode, uint16_t mouse_evt, uint16_t pad_evt) {
+void GunJoyButton::add_button(uint8_t gpio, uint8_t mode, uint16_t mouse_evt, uint32_t pad_evt) {
     for (pin_sw_info_t *sw_info : _list_sw) {
         if (sw_info->_pin == gpio) {
             LOGE("%d pin exist\n", gpio);
