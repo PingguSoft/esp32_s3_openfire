@@ -1,5 +1,6 @@
 #include <Adafruit_NeoPixel.h>
 #include <arduino-timer.h>
+#include <Wire.h>
 
 #include "GunCalibration.h"
 #include "GunCamera.h"
@@ -375,6 +376,9 @@ GunMain *_main = new GunMain();
 
 void setup() {
     Serial0.begin(115200);
+    // Wire.begin(PIN_IR_SDA, PIN_IR_SCL, 400000);
+    Wire1.begin(PIN_PERI_SDA, PIN_PERI_SCL, 400000);
+
     LOGV("Start !!!\n");
     _main->setup();
 }
