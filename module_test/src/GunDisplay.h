@@ -12,7 +12,7 @@
 
 /*
 *****************************************************************************************
-* GunCamera
+* GunDisplay
 *****************************************************************************************
 */
 #define SCREEN_WIDTH 128
@@ -20,14 +20,12 @@
 
 class GunDisplay {
    public:
-    GunDisplay() {
-    }
-
-    bool                  setup();
-    void                  loop();
+    GunDisplay();
+    bool setup();
+    void loop();
 
     void TopPanelUpdate(char *textPrefix, char *textInput);
-    void ScreenModeChange(int8_t screenMode, bool isAnalog = false);
+    void ScreenModeChange(int8_t screenMode, bool isAnalog = false, bool isBT = false);
     void IdleOps();
     void DrawVisibleIR(int pointX[4], int pointY[4]);
     void PauseScreenShow(uint8_t currentProf, char *profiles[]);
