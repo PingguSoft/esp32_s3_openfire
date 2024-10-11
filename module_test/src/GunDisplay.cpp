@@ -307,9 +307,41 @@ void GunDisplay::TopPanelUpdate(char *textPrefix, char *textInput) {
     display->display();
 }
 
+void GunDisplay::drawMenu(text_t *menu) {
+    for (uint8_t i = 0; menu[i].text != NULL; i++) {
+        display->setTextSize(menu[i].text_size);
+        display->setTextColor(menu[i].inverse ? BLACK : WHITE, menu[i].inverse ? WHITE : BLACK);
+        display->setCursor(menu[i].x, menu[i].y);
+        display->println(menu[i].text);
+    }
+}
+
 void GunDisplay::ScreenModeChange(int8_t screenMode, bool isAnalog, bool isBT) {
     if (!display)
         return;
+
+    const text_t  menu_init[] = {
+        {false, 2, 20, 18, "Welcome!"},
+        {false, 1, 12, 40, " Pull trigger to"},
+        {false, 1, 12, 52, "start calibration!"},
+        {false, 0, 0, 0, NULL},
+    };
+    const text_t  menu_saving[] = {
+        {false, 2, 16, 18, "Saving..."},
+        {false, 0, 0, 0, NULL},
+    };
+    const text_t  menu_save_success[] = {
+        {false, 2, 30, 18, "Save"},
+        {false, 4, 40, 18, "successful"},
+        {false, 0, 0, 0, NULL},
+    };
+    const text_t  menu_save_error[] = {
+        {true, 2, 30, 18, "Save"},
+        {true, 22, 40, 18, "failed"},
+        {false, 0, 0, 0, NULL},
+    };
+    text_t *menu = NULL;
+
 
     display->fillRect(0, 16, 128, 48, BLACK);
     if (screenState >= Screen_Mamehook_Single && screenMode == Screen_Normal) {
@@ -317,6 +349,7 @@ void GunDisplay::ScreenModeChange(int8_t screenMode, bool isAnalog, bool isBT) {
         currentLife = 0;
     }
     screenState = screenMode;
+
     display->setTextColor(WHITE, BLACK);
     switch (screenMode) {
         case Screen_Normal:
@@ -330,49 +363,30 @@ void GunDisplay::ScreenModeChange(int8_t screenMode, bool isAnalog, bool isBT) {
             drawBitmap(40, 16, customSplash, WHITE);
             break;
         case Screen_Init:
-            display->setTextSize(2);
-            display->setCursor(20, 18);
-            display->println("Welcome!");
-            display->setTextSize(1);
-            display->setCursor(12, 40);
-            display->println(" Pull trigger to");
-            display->setCursor(12, 52);
-            display->println("start calibration!");
+            menu = (text_t *)menu_init;
             break;
         case Screen_IRTest:
             TopPanelUpdate("", "IR Test");
             break;
         case Screen_Saving:
             TopPanelUpdate("", "Saving Profiles");
-            display->setTextSize(2);
-            display->setCursor(16, 18);
-            display->println("Saving...");
+            menu = (text_t *)menu_saving;
             break;
         case Screen_SaveSuccess:
-            display->setTextSize(2);
-            display->setCursor(30, 18);
-            display->println("Save");
-            display->setCursor(4, 40);
-            display->println("successful");
+            menu = (text_t *)menu_save_success;
             break;
         case Screen_SaveError:
-            display->setTextSize(2);
-            display->setCursor(30, 18);
-            display->setTextColor(BLACK, WHITE);
-            display->println("Save");
-            display->setCursor(22, 40);
-            display->println("failed");
+            menu = (text_t *)menu_save_error;
             break;
         case Screen_Mamehook_Single:
             drawBitmap(2, 46, isBT ? btConnectIco : usbConnectIco, WHITE);
             drawBitmap(108, 49, isAnalog ? gamepadIco : mouseIco, WHITE);
-
             if (serialDisplayType == ScreenSerial_Life && lifeBar) {
                 drawBitmap(52, 23, lifeBarBanner, WHITE);
                 drawBitmap(11, 35, lifeBarLarge, WHITE);
-                PrintLife(currentLife);
+                drawLife(currentLife);
             } else if (serialDisplayType == ScreenSerial_Ammo) {
-                PrintAmmo(currentAmmo);
+                drawAmmo(currentAmmo);
             } else {
                 drawBitmap(0, 17, mamehookIco, WHITE);
             }
@@ -383,10 +397,12 @@ void GunDisplay::ScreenModeChange(int8_t screenMode, bool isAnalog, bool isBT) {
                 drawBitmap(20, 23, lifeBarBanner, WHITE);
                 drawBitmap(2, 37, lifeBarSmall, WHITE);
             }
-            PrintAmmo(currentAmmo);
-            PrintLife(currentLife);
+            drawAmmo(currentAmmo);
+            drawLife(currentLife);
             break;
     }
+    if (menu)
+        drawMenu(menu);
     display->display();
 }
 
@@ -456,19 +472,17 @@ void GunDisplay::PauseListUpdate(uint8_t selection) {
     const char   *menus[]  = {" Calibrate ",     " Profile Select ",  " Save Gun Settings ",
                               " Rumble Toggle ", " Solenoid Toggle ", " Send Escape Keypress"};
     const uint8_t idx      = (selection - 1) % ARRAY_SIZE(menus);
-    const text_t  lines[3] = {{false, 0, 25, (char *)menus[idx]},
-                              {true, 0, 36, (char *)menus[(idx + 1) % ARRAY_SIZE(menus)]},
-                              {false, 0, 47, (char *)menus[(idx + 2) % ARRAY_SIZE(menus)]}};
+    const text_t  lines[]  = {
+        {false, 1, 0, 25, (char *)menus[idx]},
+        {true, 1, 0, 36, (char *)menus[(idx + 1) % ARRAY_SIZE(menus)]},
+        {false, 1, 0, 47, (char *)menus[(idx + 2) % ARRAY_SIZE(menus)]},
+        {false, 0, 0, 0, NULL}
+    };
 
     display->fillRect(0, 16, 128, 48, BLACK);
     drawBitmap(60, 18, upArrowGlyph, WHITE);
     drawBitmap(60, 59, downArrowGlyph, WHITE);
-    display->setTextSize(1);
-    for (uint8_t i = 0; i < ARRAY_SIZE(lines); i++) {
-        display->setTextColor(lines[i].inverse ? BLACK : WHITE, lines[i].inverse ? WHITE : BLACK);
-        display->setCursor(lines[i].x, lines[i].y);
-        display->println(lines[i].text);
-    }
+    drawMenu(lines);
     display->display();
 }
 
@@ -478,20 +492,16 @@ void GunDisplay::PauseProfileUpdate(uint8_t selection, char *profiles[]) {
 
     const uint8_t idx     = (selection - 1) % 4;
     const text_t  lines[] = {
-        {false, 4, 25, profiles[idx]},
-        {true, 4, 36, profiles[(idx + 1) % 4]},
-        {false, 4, 47, profiles[(idx + 2) % 4]}
+        {false, 1, 4, 25, profiles[idx]},
+        {true,  1, 4, 36, profiles[(idx + 1) % 4]},
+        {false, 1, 4, 47, profiles[(idx + 2) % 4]},
+        {false, 0, 0, 0, NULL}
     };
 
     display->fillRect(0, 16, 128, 48, BLACK);
     drawBitmap(60, 18, upArrowGlyph, WHITE);
     drawBitmap(60, 59, downArrowGlyph, WHITE);
-    display->setTextSize(1);
-    for (uint8_t i = 0; i < ARRAY_SIZE(lines); i++) {
-        display->setTextColor(lines[i].inverse ? BLACK : WHITE, lines[i].inverse ? WHITE : BLACK);
-        display->setCursor(lines[i].x, lines[i].y);
-        display->println(lines[i].text);
-    }
+    drawMenu(lines);
     display->display();
 }
 
@@ -507,7 +517,7 @@ void GunDisplay::SaveScreen(uint8_t status) {
     display->display();
 }
 
-void GunDisplay::PrintAmmo(uint8_t ammo) {
+void GunDisplay::drawAmmo(uint8_t ammo) {
     if (!display)
         return;
 
@@ -534,7 +544,7 @@ void GunDisplay::PrintAmmo(uint8_t ammo) {
     }
 }
 
-void GunDisplay::PrintLife(uint8_t life) {
+void GunDisplay::drawLife(uint8_t life) {
     if (!display)
         return;
 

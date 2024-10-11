@@ -32,8 +32,8 @@ class GunDisplay {
     void PauseListUpdate(uint8_t selection);
     void PauseProfileUpdate(uint8_t selection, char *profiles[]);
     void SaveScreen(uint8_t status);
-    void PrintAmmo(uint8_t ammo);
-    void PrintLife(uint8_t life);
+    void drawAmmo(uint8_t ammo);
+    void drawLife(uint8_t life);
 
     enum ScreenMode_e {
         Screen_None = -1,
@@ -76,6 +76,7 @@ class GunDisplay {
    private:
     typedef struct {
         bool        inverse;
+        uint8_t     text_size;
         uint16_t    x;
         uint16_t    y;
         char        *text;
@@ -96,6 +97,7 @@ class GunDisplay {
     unsigned long lifeTimestamp = 0;
     unsigned long idleTimeStamp = 0;
 
+    void drawMenu(text_t *menu);
     void drawBitmap(int16_t x, int16_t y, const uint8_t bitmap[], uint16_t color);
 };
 
