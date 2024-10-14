@@ -6,38 +6,58 @@
 * INCLUDE FILES
 *****************************************************************************************
 */
-#include <arduino-timer.h>
 #include <Wire.h>
+#include <arduino-timer.h>
+
+#include <vector>
+
 #include "config.h"
 #include "debug.h"
+
 
 /*
 *****************************************************************************************
 * GunDisplay
 *****************************************************************************************
 */
-#define SCREEN_WIDTH 128
+#define SCREEN_WIDTH  128
 #define SCREEN_HEIGHT 64
+
+class GunMenuCallback {
+   public:
+    typedef enum { SEL_TOP = 0, SEL_SUB } sel_t;
+    virtual char *onMenuCallback(sel_t sel, int8_t top, int8_t sub) = 0;
+};
 
 class GunDisplay {
    public:
+    typedef enum { FLAG_NONE = 0, FLAG_HALF_LEFT = _BV(0), FLAG_HALF_RIGHT = _BV(1) } flag_t;
+
     typedef struct {
-        char    *top;
+        char   *top;
+        uint8_t flag;
         uint8_t cnt;
-        char    *subs[];
+        char   *subs[4];
+
+        // internal
+        int8_t  sel;
+        char   *resp;
     } menu_t;
 
     typedef struct {
-        char    *title;
-        uint8_t top_idx;
-        uint8_t sub_idx;
+        char   *title;
+        int8_t  top_idx;
+        int8_t  sub_idx;
         uint8_t size;
-        menu_t  *menu;
+        menu_t *menu;
     } menu_info_t;
+
+    typedef enum { KEY_NONE = 0, KEY_UP, KEY_DOWN, KEY_SELECT, KEY_BACK } key_t;
 
     GunDisplay();
     bool setup(TwoWire *wire);
     void loop();
+    void set_callback(GunMenuCallback *callback) { _callback = callback; }
 
     void TopPanelUpdate(char *textPrefix, char *textInput);
     void ScreenModeChange(int8_t screenMode, bool isAnalog = false, bool isBT = false);
@@ -46,16 +66,11 @@ class GunDisplay {
     void drawAmmo(uint8_t ammo);
     void drawLife(uint8_t life);
 
-    void draw_menu(menu_info_t *mi);
-    menu_info_t *init_menu(char *title, menu_t  *menu, uint8_t sz);
-    void handle_menu(menu_info_t *mi, uint8_t key);
 
-    enum menu_key_e {
-        KEY_UP = 1,
-        KEY_DOWN,
-        KEY_SELECT,
-        KEY_BACK
-    };
+    menu_info_t *init_menu(char *title, menu_t *menu, uint8_t sz);
+    void         set_menu_sel(menu_info_t *mi, int8_t top, int8_t sel) { mi->menu[top].sel = sel; }
+    void         set_menu_sub(menu_info_t *mi, int8_t top, int8_t sub, char *text) { mi->menu[top].subs[sub] = text; }
+    void         handle_menu(menu_info_t *mi, key_t key);
 
     enum ScreenMode_e {
         Screen_None = -1,
@@ -82,12 +97,7 @@ class GunDisplay {
         ScreenPause_EscapeKey
     };
 
-    enum ScreenSerialInit_e {
-        ScreenSerial_None = 0,
-        ScreenSerial_Life,
-        ScreenSerial_Ammo,
-        ScreenSerial_Both
-    };
+    enum ScreenSerialInit_e { ScreenSerial_None = 0, ScreenSerial_Life, ScreenSerial_Ammo, ScreenSerial_Both };
 
     /// @brief Whether life updates are in lifebar or life glyphs form
     bool lifeBar = false;
@@ -96,7 +106,8 @@ class GunDisplay {
     uint8_t serialDisplayType = 0;
 
    private:
-    Timer<1, millis, GunDisplay *>     *_timer;
+    Timer<1, millis, GunDisplay *> *_timer;
+    GunMenuCallback                *_callback;
 
     int8_t screenState = Screen_None;
 
@@ -113,8 +124,10 @@ class GunDisplay {
 
     void draw_top_menu(menu_info_t *mi);
     void draw_sub_menu(menu_info_t *mi);
-    void draw_centered_text(char *text);
+    void draw_menu(menu_info_t *mi);
+    void draw_centered_text(char *text, uint8_t flag=0);
     void drawBitmap(int16_t x, int16_t y, const uint8_t bitmap[], uint16_t color);
+    void tokenize(char *line, char *token, std::vector<char *> &tokens);
 
 #if 0
     typedef struct {
@@ -126,7 +139,6 @@ class GunDisplay {
     } text_t;
     void draw_menu(text_t *menu);
 #endif
-
 };
 
 #endif

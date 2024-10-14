@@ -57,51 +57,51 @@ static const pin_info_t _tbl_sw_pins[] = {
 * VARIABLES
 *****************************************************************************************
 */
-GunDisplay::menu_t _menu[] = {
+static GunDisplay::menu_t _menu[] = {
     {
-        "Profile",
-        4,
-        {"1", "2", "3", "4" },
+        " Profile ",
+        GunDisplay::FLAG_NONE,
+        4, {" 1 ", " 2 ", " 3 ", " 4 " },
     },
     {
-        "Run Mode",
-        2,
-        {"Normal", "Average", },
+        " Run Mode ",
+        GunDisplay::FLAG_NONE,
+        2, {" Normal ", " Average ", },
     },
     {
-        "IR Sensitivity",
-        2,
-        {"Up", "Down" },
+        " IR Sensitivity ",
+        GunDisplay::FLAG_HALF_LEFT,
+        2, {" + ", " - " },
     },
     {
-        "Off-scr button",
-        2,
-        {"On", "Off" },
+        " Off-scr button ",
+        GunDisplay::FLAG_NONE,
+        2, {" Off ", " On " },
     },
     {
-        "Rumble",
-        2,
-        {"On", "Off" },
+        " Rumble ",
+        GunDisplay::FLAG_NONE,
+        2, {" Off ", " On " },
     },
     {
-        "Solenoid",
-        2,
-        {"On", "Off" },
+        " Solenoid ",
+        GunDisplay::FLAG_NONE,
+        2, {" Off ", " On " },
     },
     {
-        "Calibration",
-        1,
-        { "Welcome!\nPull trigger to\nstart calibration!" },
+        " Calibration ",
+        GunDisplay::FLAG_NONE,
+        1, { " Welcome! \n Pull trigger to \n start calibration! " },
     },
     {
-        "Save & Exit",
-        1,
-        { "Saving..." },
-    },
-    {
-        "Exit",
+        " Save ",
+        GunDisplay::FLAG_NONE,
         0,
-        { NULL },
+    },
+    {
+        " Exit ",
+        GunDisplay::FLAG_NONE,
+        0,
     },
 };
 
@@ -149,7 +149,7 @@ int debug_printf(const char *format, ...) {
     return ret;
 }
 
-class GunMain : public GunDockCallback, public GunMameHookerCallback {
+class GunMain : public GunDockCallback, public GunMameHookerCallback, public GunMenuCallback {
    public:
     GunMain() {
         _gunJoy      = new GunJoyButton();
@@ -211,6 +211,41 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback {
         }
     }
 
+    char *onMenuCallback(sel_t sel, int8_t top, int8_t sub) {
+        char *ret = NULL;
+        static char buf[80];
+
+        LOGV("%d, %d-%d\n", sel, top, sub);
+
+        switch (top) {
+            case 0:
+                if (sel == SEL_TOP) {
+                    for (uint8_t i = 0; i < 4; i++) {
+                        _gunDisp->set_menu_sub(_gunMenu, 0, i, _gunSettings->get_profile(i)->name);
+                    }
+                    _gunDisp->set_menu_sel(_gunMenu, 0, _gunSettings->get_profile_idx());
+                } else if (sel == SEL_SUB) {
+                    _gunSettings->set_profile_idx(sub);
+                }
+                break;
+
+            case 2:
+                if (sel == SEL_SUB) {
+                    int8_t v = _gunSettings->get_profile()->irSensitivity;
+                    if (sub == 0 && v < 3) {
+                        v++;
+                    } else if (sub == 1 && v > 0) {
+                        v--;
+                    }
+                    _gunSettings->get_profile()->irSensitivity = v;
+                }
+                sniprintf(buf, sizeof(buf), "%d", _gunSettings->get_profile()->irSensitivity);
+                ret = buf;
+                break;
+        }
+        return ret;
+    }
+
     void update_auto_trigger() {
         if (_gunSettings->get_gun_mode() == GunSettings::GunMode_Calibration ||
             !_gunSettings->get_feature_config()->autofireActive) {
@@ -254,6 +289,8 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback {
         pinMode(PIN_PERI_SCL, INPUT_PULLUP);
         Wire1.begin(PIN_PERI_SDA, PIN_PERI_SCL, 400000);
         _gunDisp->setup(&Wire1);
+        _gunDisp->set_callback(this);
+        _gunDisp->handle_menu(_gunMenu, GunDisplay::KEY_NONE);
 
         // joypad setting
         for (int i = 0; i < ARRAY_SIZE(_tbl_sw_pins); i++) {
@@ -397,6 +434,27 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback {
         _btn_trk.end();
     }
 
+    void handle_menu(GunJoyButton::report_t *report) {
+        uint32_t btns;
+
+        btns = ((int)_gunJoy->get_hat_mask() << 24) | report->pad_buttons;
+        _btn_trk.begin(btns);
+
+        if (_btn_trk.isPressed(PAD_BUTTON_TL) || _btn_trk.isPressed(PAD_HAT_MASK_Y_P << 24)) {            // up
+            _gunDisp->handle_menu(_gunMenu, GunDisplay::KEY_UP);
+        } else if (_btn_trk.isPressed(PAD_BUTTON_Y) || _btn_trk.isPressed(PAD_HAT_MASK_Y_M << 24)) {      // down
+            _gunDisp->handle_menu(_gunMenu, GunDisplay::KEY_DOWN);
+        }
+
+        if (_btn_trk.isPressed(PAD_BUTTON_TR)) {            // trigger
+            _gunDisp->handle_menu(_gunMenu, GunDisplay::KEY_SELECT);
+        } else if (_btn_trk.isPressed(PAD_BUTTON_A)) {      // back
+            _gunDisp->handle_menu(_gunMenu, GunDisplay::KEY_BACK);
+        }
+
+        _btn_trk.end();
+    }
+
     void loop() {
         bool                   update;
         GunJoyButton::report_t *report;
@@ -412,7 +470,8 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback {
             LOGV("%5d, %5d, %2d %4x %2x\n", report->x, report->y, report->hat, report->pad_buttons, report->mouse_buttons);
         }
 
-        handle_gun_mode(report);
+        // handle_gun_mode(report);
+        handle_menu(report);
 
         // cam processing
         _gunCam->loop();
@@ -438,6 +497,8 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback {
     GunSettings::GunMode_e _prv_mode;
     uint8_t                _tbl_hat2fire[9] = { 0, 1, 8, 7, 6, 5, 4, 3, 2};
 };
+
+
 
 GunMain *_main = new GunMain();
 
