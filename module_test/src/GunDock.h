@@ -7,7 +7,7 @@
 
 class GunDockCallback {
    public:
-    virtual void onCallback(uint8_t cmd, uint8_t *pData, uint16_t size, Stream *stream) = 0;
+    virtual void onDockCallback(uint8_t cmd, uint8_t *pData, uint16_t size, Stream *stream) = 0;
 };
 
 class GunDock {

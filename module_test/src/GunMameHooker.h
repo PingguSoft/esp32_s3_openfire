@@ -7,7 +7,7 @@
 
 class GunMameHookerCallback {
    public:
-    virtual void onCallback(uint8_t cmd, uint8_t *pData, uint16_t size, Stream *stream) = 0;
+    virtual void onMameHookCallback(uint8_t cmd, uint8_t *pData, uint16_t size, Stream *stream) = 0;
 };
 
 class GunMameHooker {
@@ -35,7 +35,10 @@ class GunMameHooker {
         STATE_CMD_START,
         STATE_CMD_END,
         STATE_CMD_MODE,
+        STATE_CMD_MODE_EXT,
         STATE_CMD_FFB,
+        STATE_CMD_FFB_PARAM,
+        STATE_CMD_FFB_PARAM_DECI,
     };
 
     GunMameHookerCallback *_callback;
@@ -43,6 +46,7 @@ class GunMameHooker {
     uint8_t          _state;
     uint8_t          _buf[100];
     uint8_t          _pos;
+    uint8_t          _dec_pos;
 };
 
 #endif

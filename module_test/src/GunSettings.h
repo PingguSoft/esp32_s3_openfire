@@ -163,7 +163,7 @@ class GunSettings : public GunDockCallback {
     void save();
     bool load();
 
-    virtual void onCallback(uint8_t cmd, uint8_t* pData, uint16_t size, Stream* stream);
+    virtual void onDockCallback(uint8_t cmd, uint8_t* pData, uint16_t size, Stream* stream);
 
     /// @brief Required size for the preferences
     static unsigned int Size() { return sizeof(HeaderId_u) + sizeof(_profiles); }
