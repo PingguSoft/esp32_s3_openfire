@@ -1,8 +1,6 @@
 #include <Adafruit_SSD1306.h>
 #include <Adafruit_GFX.h>
-#include <Wire.h>
 #include "GunDisplay.h"
-#include "debug.h"
 
 #define unpack_uint16(x)    ((x >> 0) & 0xff), ((x >> 8) & 0xff)
 #define bitmap_width(x)     (x[0] | ((uint16_t)x[1] << 8))
@@ -268,7 +266,9 @@ static const uint8_t customSplash[] = {
     0x03, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x03, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x03, 0xc0, 0x00, 0x00
 };
 
-Adafruit_SSD1306 *display;
+
+
+static Adafruit_SSD1306 *display;
 
 GunDisplay::GunDisplay() {
 }
@@ -277,27 +277,156 @@ void GunDisplay::drawBitmap(int16_t x, int16_t y, const uint8_t bitmap[], uint16
     uint16_t w = ((uint16_t)bitmap[1] << 8) | bitmap[0];
     uint16_t h = ((uint16_t)bitmap[3] << 8) | bitmap[2];
 
-    LOGV("w:%d, h:%d\n", w, h);
-
     if (display)
         display->drawBitmap(x, y, &bitmap[4], w, h, color);
 }
 
-bool GunDisplay::setup() {
-    display = new Adafruit_SSD1306(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire1, -1);
+bool GunDisplay::setup(TwoWire *wire) {
+    display = new Adafruit_SSD1306(SCREEN_WIDTH, SCREEN_HEIGHT, wire, -1);
 
     if (display->begin(SSD1306_SWITCHCAPVCC, 0x3C, false)) {
-        LOGV("success\n");
         display->clearDisplay();
         // display->display();
         ScreenModeChange(Screen_None);
         return true;
     } else {
-        LOGV("failed\n");
         delete display;
         display = nullptr;
     }
     return false;
+}
+
+GunDisplay::menu_info_t *GunDisplay::init_menu(char *title, menu_t *menu, uint8_t sz) {
+    menu_info_t *mi = new menu_info_t;
+    mi->top_idx = 0;
+    mi->sub_idx = -1;
+    mi->size = sz;
+    mi->menu = menu;
+    mi->title = title;
+
+    return mi;
+}
+
+void GunDisplay::draw_top_menu(menu_info_t *mi) {
+    if (!display)
+        return;
+
+    uint8_t idx;
+    uint8_t idx_sel;
+
+    display->clearDisplay();
+    display->setTextColor(WHITE, BLACK);
+    display->setCursor(0, 2);
+    display->setTextSize(1);
+    draw_centered_text(mi->title);
+    idx = (mi->size > 3) ? (mi->top_idx - 1) % mi->size : 0;
+    idx_sel = (mi->size == 1) ? 0 : 1;
+
+    for (int i = 0; i < min((uint8_t)3, mi->size); i++) {
+        if (i == idx_sel) {
+            display->setTextColor(BLACK, WHITE);
+        } else {
+            display->setTextColor(WHITE, BLACK);
+        }
+        display->setCursor(0, 25 + i * 11);
+        draw_centered_text(mi->menu[idx].top);
+        idx = (idx + 1)  % mi->size;
+    }
+
+    if (mi->size > 1) {
+        drawBitmap(60, 18, upArrowGlyph, WHITE);
+        drawBitmap(60, 59, downArrowGlyph, WHITE);
+    }
+}
+
+void GunDisplay::draw_sub_menu(menu_info_t *mi) {
+    if (!display)
+        return;
+
+    uint8_t idx;
+    uint8_t idx_sel;
+
+    display->clearDisplay();
+    display->setTextColor(WHITE, BLACK);
+    display->setCursor(0, 2);
+    display->setTextSize(1);
+    draw_centered_text(mi->menu[mi->top_idx].top);
+    idx = (mi->menu[mi->top_idx].cnt > 3) ? (mi->sub_idx - 1) % mi->menu[mi->top_idx].cnt : 0;
+    idx_sel = (mi->menu[mi->top_idx].cnt == 1) ? 0 : 1;
+
+    for (int i = 0; i < min((uint8_t)3, mi->menu[mi->top_idx].cnt); i++) {
+        if (i == idx_sel) {
+            display->setTextColor(BLACK, WHITE);
+        } else {
+            display->setTextColor(WHITE, BLACK);
+        }
+        display->setCursor(0, 25 + i * 11);
+        draw_centered_text(mi->menu[mi->top_idx].subs[idx]);
+        idx = (idx + 1)  % mi->menu[mi->top_idx].cnt;
+    }
+
+    if (mi->menu[mi->top_idx].cnt > 1) {
+        drawBitmap(60, 18, upArrowGlyph, WHITE);
+        drawBitmap(60, 59, downArrowGlyph, WHITE);
+    }
+}
+
+void GunDisplay::draw_menu(menu_info_t *mi) {
+    if (!display)
+        return;
+
+    if (mi->sub_idx == -1) {
+        draw_top_menu(mi);
+    } else {
+        draw_sub_menu(mi);
+    }
+    display->display();
+}
+
+void GunDisplay::handle_menu(menu_info_t *mi, uint8_t key) {
+    switch (key) {
+        case KEY_UP:
+            if (mi->sub_idx == -1) {
+                mi->top_idx = (mi->top_idx - 1) % mi->size;
+            } else {
+                mi->sub_idx = (mi->sub_idx - 1) % mi->menu[mi->top_idx].cnt;
+            }
+            break;
+
+        case KEY_DOWN:
+            if (mi->sub_idx == -1) {
+                mi->top_idx = (mi->top_idx + 1) % mi->size;
+            } else {
+                mi->sub_idx = (mi->sub_idx + 1) % mi->menu[mi->top_idx].cnt;
+            }
+            break;
+
+        case KEY_SELECT:
+            if (mi->sub_idx == -1) {
+                mi->sub_idx = 0;
+            } else {
+                // sub menu selected
+            }
+            break;
+
+        case KEY_BACK:
+            if (mi->sub_idx != -1) {
+                mi->sub_idx = -1;
+            }
+            break;
+    }
+    draw_menu(mi);
+}
+
+void GunDisplay::draw_centered_text(char *text) {
+    int16_t     x1, y1;
+    uint16_t    w, h;
+
+    int16_t y = display->getCursorY();
+    display->getTextBounds(text, 0, y, &x1, &y1, &w, &h);
+    int16_t x = (display->width() - w) / 2;
+    display->setCursor(x, y);
+    display->print(text);
 }
 
 void GunDisplay::TopPanelUpdate(char *textPrefix, char *textInput) {
@@ -314,7 +443,9 @@ void GunDisplay::TopPanelUpdate(char *textPrefix, char *textInput) {
     display->display();
 }
 
-void GunDisplay::drawMenu(text_t *menu) {
+
+#if 0
+void GunDisplay::draw_menu(text_t *menu) {
     for (uint8_t i = 0; menu[i].text != NULL; i++) {
         display->setTextSize(menu[i].text_size);
         display->setTextColor(menu[i].inverse ? BLACK : WHITE, menu[i].inverse ? WHITE : BLACK);
@@ -328,7 +459,7 @@ void GunDisplay::ScreenModeChange(int8_t screenMode, bool isAnalog, bool isBT) {
         return;
 
     const text_t  menu_init[] = {
-        {false, 2, 20, 18, "Welcome!"},
+        {false, 2, 20, 18, "Welcome!\nPull trigger to\nstart calibration!"},
         {false, 1, 12, 40, " Pull trigger to"},
         {false, 1, 12, 52, "start calibration!"},
         {false, 0, 0, 0, NULL},
@@ -409,7 +540,7 @@ void GunDisplay::ScreenModeChange(int8_t screenMode, bool isAnalog, bool isBT) {
             break;
     }
     if (menu)
-        drawMenu(menu);
+        draw_menu(menu);
     display->display();
 }
 
@@ -432,22 +563,6 @@ void GunDisplay::IdleOps() {
         case Screen_Mamehook_Dual:
             break;
     }
-}
-
-// Warning: SLOOOOW, should only be used in cali/where the mouse isn't being updated.
-// Use at your own discression.
-void GunDisplay::DrawVisibleIR(int pointX[4], int pointY[4]) {
-    if (!display)
-        return;
-
-    display->fillRect(0, 16, 128, 48, BLACK);
-    for (uint8_t i = 0; i < 4; i++) {
-        pointX[i] = map(pointX[i], 0, 1920, 0, 128);
-        pointY[i] = map(pointY[i], 0, 1080, 16, 64);
-        pointY[i] = constrain(pointY[i], 16, 64);
-        display->fillCircle(pointX[i], pointY[i], 1, WHITE);
-    }
-    display->display();
 }
 
 void GunDisplay::PauseScreenShow(uint8_t currentProf, char *profiles[]) {
@@ -489,7 +604,7 @@ void GunDisplay::PauseListUpdate(uint8_t selection) {
     display->fillRect(0, 16, 128, 48, BLACK);
     drawBitmap(60, 18, upArrowGlyph, WHITE);
     drawBitmap(60, 59, downArrowGlyph, WHITE);
-    drawMenu((text_t*)lines);
+    draw_menu((text_t*)lines);
     display->display();
 }
 
@@ -508,7 +623,7 @@ void GunDisplay::PauseProfileUpdate(uint8_t selection, char *profiles[]) {
     display->fillRect(0, 16, 128, 48, BLACK);
     drawBitmap(60, 18, upArrowGlyph, WHITE);
     drawBitmap(60, 59, downArrowGlyph, WHITE);
-    drawMenu((text_t*)lines);
+    draw_menu((text_t*)lines);
     display->display();
 }
 
@@ -521,6 +636,24 @@ void GunDisplay::SaveScreen(uint8_t status) {
     display->setTextSize(2);
     display->setCursor(24, 24);
     display->println("Saving...");
+    display->display();
+}
+
+#endif
+
+// Warning: SLOOOOW, should only be used in cali/where the mouse isn't being updated.
+// Use at your own discression.
+void GunDisplay::DrawVisibleIR(int pointX[4], int pointY[4]) {
+    if (!display)
+        return;
+
+    display->fillRect(0, 16, 128, 48, BLACK);
+    for (uint8_t i = 0; i < 4; i++) {
+        pointX[i] = map(pointX[i], 0, 1920, 0, 128);
+        pointY[i] = map(pointY[i], 0, 1080, 16, 64);
+        pointY[i] = constrain(pointY[i], 16, 64);
+        display->fillCircle(pointX[i], pointY[i], 1, WHITE);
+    }
     display->display();
 }
 

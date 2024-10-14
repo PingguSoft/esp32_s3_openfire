@@ -7,6 +7,7 @@
 *****************************************************************************************
 */
 #include <arduino-timer.h>
+#include <Wire.h>
 #include "config.h"
 #include "debug.h"
 
@@ -20,20 +21,41 @@
 
 class GunDisplay {
    public:
+    typedef struct {
+        char    *top;
+        uint8_t cnt;
+        char    *subs[];
+    } menu_t;
+
+    typedef struct {
+        char    *title;
+        uint8_t top_idx;
+        uint8_t sub_idx;
+        uint8_t size;
+        menu_t  *menu;
+    } menu_info_t;
+
     GunDisplay();
-    bool setup();
+    bool setup(TwoWire *wire);
     void loop();
 
     void TopPanelUpdate(char *textPrefix, char *textInput);
     void ScreenModeChange(int8_t screenMode, bool isAnalog = false, bool isBT = false);
     void IdleOps();
     void DrawVisibleIR(int pointX[4], int pointY[4]);
-    void PauseScreenShow(uint8_t currentProf, char *profiles[]);
-    void PauseListUpdate(uint8_t selection);
-    void PauseProfileUpdate(uint8_t selection, char *profiles[]);
-    void SaveScreen(uint8_t status);
     void drawAmmo(uint8_t ammo);
     void drawLife(uint8_t life);
+
+    void draw_menu(menu_info_t *mi);
+    menu_info_t *init_menu(char *title, menu_t  *menu, uint8_t sz);
+    void handle_menu(menu_info_t *mi, uint8_t key);
+
+    enum menu_key_e {
+        KEY_UP = 1,
+        KEY_DOWN,
+        KEY_SELECT,
+        KEY_BACK
+    };
 
     enum ScreenMode_e {
         Screen_None = -1,
@@ -74,14 +96,6 @@ class GunDisplay {
     uint8_t serialDisplayType = 0;
 
    private:
-    typedef struct {
-        bool        inverse;
-        uint8_t     text_size;
-        uint16_t    x;
-        uint16_t    y;
-        char        *text;
-    } text_t;
-
     Timer<1, millis, GunDisplay *>     *_timer;
 
     int8_t screenState = Screen_None;
@@ -97,8 +111,22 @@ class GunDisplay {
     unsigned long lifeTimestamp = 0;
     unsigned long idleTimeStamp = 0;
 
-    void drawMenu(text_t *menu);
+    void draw_top_menu(menu_info_t *mi);
+    void draw_sub_menu(menu_info_t *mi);
+    void draw_centered_text(char *text);
     void drawBitmap(int16_t x, int16_t y, const uint8_t bitmap[], uint16_t color);
+
+#if 0
+    typedef struct {
+        bool        inverse;
+        uint8_t     text_size;
+        uint16_t    x;
+        uint16_t    y;
+        char        *text;
+    } text_t;
+    void draw_menu(text_t *menu);
+#endif
+
 };
 
 #endif

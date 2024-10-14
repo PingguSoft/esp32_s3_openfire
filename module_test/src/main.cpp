@@ -10,6 +10,7 @@
 #include "GunJoyButton.h"
 #include "GunSettings.h"
 #include "GunDisplay.h"
+#include "GunMameHooker.h"
 #include "config.h"
 #include "debug.h"
 
@@ -56,6 +57,54 @@ static const pin_info_t _tbl_sw_pins[] = {
 * VARIABLES
 *****************************************************************************************
 */
+GunDisplay::menu_t _menu[] = {
+    {
+        "Profile",
+        4,
+        {"1", "2", "3", "4" },
+    },
+    {
+        "Run Mode",
+        2,
+        {"Normal", "Average", },
+    },
+    {
+        "IR Sensitivity",
+        2,
+        {"Up", "Down" },
+    },
+    {
+        "Off-scr button",
+        2,
+        {"On", "Off" },
+    },
+    {
+        "Rumble",
+        2,
+        {"On", "Off" },
+    },
+    {
+        "Solenoid",
+        2,
+        {"On", "Off" },
+    },
+    {
+        "Calibration",
+        1,
+        { "Welcome!\nPull trigger to\nstart calibration!" },
+    },
+    {
+        "Save & Exit",
+        1,
+        { "Saving..." },
+    },
+    {
+        "Exit",
+        0,
+        { NULL },
+    },
+};
+
 
 /*
 *****************************************************************************************
@@ -100,7 +149,7 @@ int debug_printf(const char *format, ...) {
     return ret;
 }
 
-class GunMain : public GunDockCallback {
+class GunMain : public GunDockCallback, public GunMameHookerCallback {
    public:
     GunMain() {
         _gunJoy      = new GunJoyButton();
@@ -110,10 +159,14 @@ class GunMain : public GunDockCallback {
         _gunSettings = new GunSettings();
         _pixels      = new Adafruit_NeoPixel(1, PIN_LED_STRIP, NEO_GRB + NEO_KHZ800);
         _gunDisp     = new GunDisplay();
+        _gunMenu     = _gunDisp->init_menu("SETTINGS", _menu, ARRAY_SIZE(_menu));
     }
 
-    void onCallback(uint8_t cmd, uint8_t *pData, uint16_t size, Stream *stream) {
-        _gunSettings->onCallback(cmd, pData, size, stream);
+    void onMameHookCallback(uint8_t cmd, uint8_t *pData, uint16_t size, Stream *stream) {
+    }
+
+    void onDockCallback(uint8_t cmd, uint8_t *pData, uint16_t size, Stream *stream) {
+        _gunSettings->onDockCallback(cmd, pData, size, stream);
 
         switch (cmd) {
             case GunDock::CMD_IR_BRIGHTNESS: {
@@ -196,8 +249,11 @@ class GunMain : public GunDockCallback {
         _pixels->setPixelColor(0, _pixels->Color(0, 0, 255));
         _pixels->show();
 
-        _gunDisp->setup();
-        for(;;);
+        // olde display
+        pinMode(PIN_PERI_SDA, INPUT_PULLUP);
+        pinMode(PIN_PERI_SCL, INPUT_PULLUP);
+        Wire1.begin(PIN_PERI_SDA, PIN_PERI_SCL, 400000);
+        _gunDisp->setup(&Wire1);
 
         // joypad setting
         for (int i = 0; i < ARRAY_SIZE(_tbl_sw_pins); i++) {
@@ -226,6 +282,9 @@ class GunMain : public GunDockCallback {
         // dock setup
         _gunDock = new GunDock(_gunHID->get_serial());
         _gunDock->set_callback(this);
+
+        _gunMameHooker = new GunMameHooker(_gunHID->get_serial());
+        _gunMameHooker->set_callback(this);
     }
 
     void handle_ir_test(GunSettings *settings, GunCamera *cam) {
@@ -372,7 +431,9 @@ class GunMain : public GunDockCallback {
     GunCalibration        *_gunCali;
     GunSettings           *_gunSettings;
     GunDock               *_gunDock;
+    GunDisplay::menu_info_t *_gunMenu;
     GunDisplay            *_gunDisp;
+    GunMameHooker         *_gunMameHooker;
     ButtonTracker          _btn_trk;
     GunSettings::GunMode_e _prv_mode;
     uint8_t                _tbl_hat2fire[9] = { 0, 1, 8, 7, 6, 5, 4, 3, 2};
@@ -383,10 +444,6 @@ GunMain *_main = new GunMain();
 void setup() {
     Serial0.begin(115200);
     // Wire.begin(PIN_IR_SDA, PIN_IR_SCL, 400000);
-    pinMode(PIN_PERI_SDA, INPUT_PULLUP);
-    pinMode(PIN_PERI_SCL, INPUT_PULLUP);
-    Wire1.begin(PIN_PERI_SDA, PIN_PERI_SCL, 400000);
-
 
     LOGV("Start !!!\n");
     _main->setup();
