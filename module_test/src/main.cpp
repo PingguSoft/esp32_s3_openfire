@@ -9,6 +9,7 @@
 #include "GunHID.h"
 #include "GunJoyButton.h"
 #include "GunSettings.h"
+#include "GunDisplay.h"
 #include "config.h"
 #include "debug.h"
 
@@ -108,6 +109,7 @@ class GunMain : public GunDockCallback {
         _gunCali     = new GunCalibration();
         _gunSettings = new GunSettings();
         _pixels      = new Adafruit_NeoPixel(1, PIN_LED_STRIP, NEO_GRB + NEO_KHZ800);
+        _gunDisp     = new GunDisplay();
     }
 
     void onCallback(uint8_t cmd, uint8_t *pData, uint16_t size, Stream *stream) {
@@ -193,6 +195,9 @@ class GunMain : public GunDockCallback {
         _pixels->setBrightness(50);
         _pixels->setPixelColor(0, _pixels->Color(0, 0, 255));
         _pixels->show();
+
+        _gunDisp->setup();
+        for(;;);
 
         // joypad setting
         for (int i = 0; i < ARRAY_SIZE(_tbl_sw_pins); i++) {
@@ -367,6 +372,7 @@ class GunMain : public GunDockCallback {
     GunCalibration        *_gunCali;
     GunSettings           *_gunSettings;
     GunDock               *_gunDock;
+    GunDisplay            *_gunDisp;
     ButtonTracker          _btn_trk;
     GunSettings::GunMode_e _prv_mode;
     uint8_t                _tbl_hat2fire[9] = { 0, 1, 8, 7, 6, 5, 4, 3, 2};
@@ -377,7 +383,10 @@ GunMain *_main = new GunMain();
 void setup() {
     Serial0.begin(115200);
     // Wire.begin(PIN_IR_SDA, PIN_IR_SCL, 400000);
+    pinMode(PIN_PERI_SDA, INPUT_PULLUP);
+    pinMode(PIN_PERI_SCL, INPUT_PULLUP);
     Wire1.begin(PIN_PERI_SDA, PIN_PERI_SCL, 400000);
+
 
     LOGV("Start !!!\n");
     _main->setup();

@@ -28,7 +28,7 @@
 #define PIN_RUMBLE    11
 #define PIN_SOLENOID  12
 #define PIN_PERI_SDA  21
-#define PIN_PERI_SCL  48
+#define PIN_PERI_SCL  47
 
 // buttons
 #define PIN_JOY_ADC_X     4

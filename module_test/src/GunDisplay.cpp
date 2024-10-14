@@ -2,6 +2,7 @@
 #include <Adafruit_GFX.h>
 #include <Wire.h>
 #include "GunDisplay.h"
+#include "debug.h"
 
 #define unpack_uint16(x)    ((x >> 0) & 0xff), ((x >> 8) & 0xff)
 #define bitmap_width(x)     (x[0] | ((uint16_t)x[1] << 8))
@@ -275,6 +276,9 @@ GunDisplay::GunDisplay() {
 void GunDisplay::drawBitmap(int16_t x, int16_t y, const uint8_t bitmap[], uint16_t color) {
     uint16_t w = ((uint16_t)bitmap[1] << 8) | bitmap[0];
     uint16_t h = ((uint16_t)bitmap[3] << 8) | bitmap[2];
+
+    LOGV("w:%d, h:%d\n", w, h);
+
     if (display)
         display->drawBitmap(x, y, &bitmap[4], w, h, color);
 }
@@ -283,10 +287,13 @@ bool GunDisplay::setup() {
     display = new Adafruit_SSD1306(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire1, -1);
 
     if (display->begin(SSD1306_SWITCHCAPVCC, 0x3C, false)) {
+        LOGV("success\n");
         display->clearDisplay();
+        // display->display();
         ScreenModeChange(Screen_None);
         return true;
     } else {
+        LOGV("failed\n");
         delete display;
         display = nullptr;
     }
@@ -482,7 +489,7 @@ void GunDisplay::PauseListUpdate(uint8_t selection) {
     display->fillRect(0, 16, 128, 48, BLACK);
     drawBitmap(60, 18, upArrowGlyph, WHITE);
     drawBitmap(60, 59, downArrowGlyph, WHITE);
-    drawMenu(lines);
+    drawMenu((text_t*)lines);
     display->display();
 }
 
@@ -501,7 +508,7 @@ void GunDisplay::PauseProfileUpdate(uint8_t selection, char *profiles[]) {
     display->fillRect(0, 16, 128, 48, BLACK);
     drawBitmap(60, 18, upArrowGlyph, WHITE);
     drawBitmap(60, 59, downArrowGlyph, WHITE);
-    drawMenu(lines);
+    drawMenu((text_t*)lines);
     display->display();
 }
 
