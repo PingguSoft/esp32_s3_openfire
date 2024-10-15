@@ -25,23 +25,31 @@
 
 class GunMenuCallback {
    public:
-    typedef enum { SEL_TOP = 0, SEL_SUB } sel_t;
-    virtual char *onMenuCallback(sel_t sel, int8_t top, int8_t sub) = 0;
+    typedef enum {
+        ON_INIT = 0,
+        ON_TOP_SEL, ON_TOP_DESEL, ON_TOP_VAL_CHANGE, ON_TOP_CLICK,
+        ON_SUB_SEL, ON_SUB_DESEL, ON_SUB_VAL_CHANGE, ON_SUB_CLICK } op_t;
+    virtual char *onMenuCallback(op_t op, int8_t top, int8_t sub, void **data) = 0;
 };
 
 class GunDisplay {
    public:
-    typedef enum { FLAG_NONE = 0, FLAG_HALF_LEFT = _BV(0), FLAG_HALF_RIGHT = _BV(1) } flag_t;
+    typedef enum { TYPE_NONE = 0, TYPE_LIST, TYPE_BOOL, TYPE_DIGIT_8, TYPE_DIGIT_16 } type_t;
+    // typedef enum { FLAG_NONE = 0, FLAG_HALF_LEFT = _BV(0), FLAG_HALF_RIGHT = _BV(1) } flag_t;
 
     typedef struct {
         char   *top;
-        uint8_t flag;
+        uint8_t type;
         uint8_t cnt;
         char   *subs[4];
 
         // internal
-        int8_t  sel;
-        char   *resp;
+        struct {
+            int8_t  sel;
+            void   *data;
+            uint16_t min;
+            uint16_t max;
+        } internal;
     } menu_t;
 
     typedef struct {
@@ -50,14 +58,14 @@ class GunDisplay {
         int8_t  sub_idx;
         uint8_t size;
         menu_t *menu;
+        GunMenuCallback *callback;
     } menu_info_t;
 
-    typedef enum { KEY_NONE = 0, KEY_UP, KEY_DOWN, KEY_SELECT, KEY_BACK } key_t;
+    typedef enum { KEY_NONE = 0, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_ENTER, KEY_BACK } key_t;
 
     GunDisplay();
     bool setup(TwoWire *wire);
     void loop();
-    void set_callback(GunMenuCallback *callback) { _callback = callback; }
 
     void TopPanelUpdate(char *textPrefix, char *textInput);
     void ScreenModeChange(int8_t screenMode, bool isAnalog = false, bool isBT = false);
@@ -67,10 +75,12 @@ class GunDisplay {
     void drawLife(uint8_t life);
 
 
-    menu_info_t *init_menu(char *title, menu_t *menu, uint8_t sz);
-    void         set_menu_sel(menu_info_t *mi, int8_t top, int8_t sel) { mi->menu[top].sel = sel; }
-    void         set_menu_sub(menu_info_t *mi, int8_t top, int8_t sub, char *text) { mi->menu[top].subs[sub] = text; }
-    void         handle_menu(menu_info_t *mi, key_t key);
+    menu_info_t *init_menu(char *title, menu_t *menu, uint8_t sz, GunMenuCallback *callback=NULL);
+    void         set_menu_data(menu_info_t *mi, int8_t top, void *data) { mi->menu[top].internal.data = data; }
+    void         set_menu_data_range(menu_info_t *mi, int8_t top, uint16_t min, uint16_t max) { mi->menu[top].internal.min = min; mi->menu[top].internal.max = max;}
+    void         set_menu_sel(menu_info_t *mi, int8_t top, int8_t sel) { mi->menu[top].internal.sel = sel; }
+    void         set_menu_subs(menu_info_t *mi, int8_t top, int8_t sub, char *text) { mi->menu[top].subs[sub] = text; }
+    void         handle_menu(menu_info_t *mi, key_t key=KEY_NONE);
 
     enum ScreenMode_e {
         Screen_None = -1,
@@ -128,6 +138,9 @@ class GunDisplay {
     void draw_centered_text(char *text, uint8_t flag=0);
     void drawBitmap(int16_t x, int16_t y, const uint8_t bitmap[], uint16_t color);
     void tokenize(char *line, char *token, std::vector<char *> &tokens);
+
+    char *alloc_tmp(char *loc, uint16_t sz, char *text, uint8_t extra);
+    void  free_tmp(char *loc, char *buf);
 
 #if 0
     typedef struct {

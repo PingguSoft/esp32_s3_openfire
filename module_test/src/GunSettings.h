@@ -50,20 +50,20 @@ class GunSettings : public GunDockCallback {
 
     /// @brief Profile data
     typedef struct ProfileData_s {
-        int      topOffset;  // Perspective: Offsets
+        int      topOffset;         // Perspective: Offsets
         int      bottomOffset;
         int      leftOffset;
         int      rightOffset;
-        float    TLled;  // Perspective: LED relative anchors
+        float    TLled;             // Perspective: LED relative anchors
         float    TRled;
-        float    adjX;  // Perspective: adjusted axis
+        float    adjX;              // Perspective: adjusted axis
         float    adjY;
-        uint32_t irSensitivity : 3;  // IR Sensitivity from 0-2
-        uint32_t runMode : 5;        // Averaging mode
-        uint32_t buttonMask : 16;    // Button mask assigned to this profile
-        bool     irLayout;           // square or diamond IR for this display?
-        uint32_t color : 24;         // packed color blob per profile
-        char     name[16];           // Profile display name
+        uint8_t  irSensitivity;     // IR Sensitivity from 0-2
+        uint8_t  runMode;           // Averaging mode
+        uint16_t buttonMask;        // Button mask assigned to this profile
+        bool     irLayout;          // square or diamond IR for this display?
+        uint32_t color;             // packed color blob per profile
+        char     name[16];          // Profile display name
     } __attribute__((packed)) profile_data_t;
 
     /// @brief Preferences that can be stored in flash
