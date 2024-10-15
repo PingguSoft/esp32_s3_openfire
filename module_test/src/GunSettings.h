@@ -178,9 +178,9 @@ class GunSettings : public GunDockCallback {
     // header ID to ensure junk isn't loaded if preferences aren't saved
     static const header_id_t _header_id;
     static profiles_t        _profiles;  // single instance of the preference data
-    static feature_map_t      _features;
+    static feature_map_t     _features;
     static pins_map_t        _pins;
-    static params_map_t    _params;
+    static params_map_t      _params;
     static usb_map_t         _usb;
 };
 

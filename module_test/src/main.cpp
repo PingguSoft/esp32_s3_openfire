@@ -206,8 +206,9 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback, public Gun
         }
     }
 
-    char *onMenuCallback(op_t op, int8_t top, int8_t sub, void **data) {
+    char *onMenuCallback(op_t op, int8_t top, int8_t sub, void *data) {
         char *ret = NULL;
+        GunDisplay::menu_info_t *mi = (GunDisplay::menu_info_t *)data;
         static char buf[80];
 
         LOGV("%d, %d-%d\n", op, top, sub);
@@ -217,9 +218,9 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback, public Gun
                 switch (op) {
                     case ON_TOP_CLICK:
                         for (uint8_t i = 0; i < 4; i++) {
-                            _gunDisp->set_menu_subs(_gunMenu, 0, i, _gunSettings->get_profile(i)->name);
+                            _gunDisp->set_menu_subs(mi, 0, i, _gunSettings->get_profile(i)->name);
                         }
-                        _gunDisp->set_menu_sel(_gunMenu, top, _gunSettings->get_profile_idx());
+                        _gunDisp->set_menu_sel(mi, top, _gunSettings->get_profile_idx());
                         break;
 
                     case ON_SUB_CLICK:
@@ -231,7 +232,7 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback, public Gun
             case 1:     // runmode
                 switch (op) {
                     case ON_TOP_CLICK:
-                        _gunDisp->set_menu_sel(_gunMenu, top, _gunSettings->get_profile()->runMode);
+                        _gunDisp->set_menu_sel(mi, top, _gunSettings->get_profile()->runMode);
                         break;
 
                     case ON_SUB_CLICK:
@@ -242,26 +243,26 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback, public Gun
 
             case 2:     // ir
                 if (op == ON_INIT) {
-                    _gunDisp->set_menu_data(_gunMenu, top, &_gunSettings->get_profile()->irSensitivity);
-                    _gunDisp->set_menu_data_range(_gunMenu, top, 0, 3);
+                    _gunDisp->set_menu_data(mi, top, &_gunSettings->get_profile()->irSensitivity);
+                    _gunDisp->set_menu_data_range(mi, top, 0, 3);
                 }
                 break;
 
             case 3:     // off-screen
                 if (op == ON_INIT) {
-                    _gunDisp->set_menu_data(_gunMenu, top, &_gunSettings->get_feature_config()->lowButtonMode);
+                    _gunDisp->set_menu_data(mi, top, &_gunSettings->get_feature_config()->lowButtonMode);
                 }
                 break;
 
             case 4:     // rumble
                 if (op == ON_INIT) {
-                    _gunDisp->set_menu_data(_gunMenu, top, &_gunSettings->get_feature_config()->rumbleActive);
+                    _gunDisp->set_menu_data(mi, top, &_gunSettings->get_feature_config()->rumbleActive);
                 }
                 break;
 
             case 5:     // solenoid
                 if (op == ON_INIT) {
-                    _gunDisp->set_menu_data(_gunMenu, top, &_gunSettings->get_feature_config()->solenoidActive);
+                    _gunDisp->set_menu_data(mi, top, &_gunSettings->get_feature_config()->solenoidActive);
                 }
                 break;
 

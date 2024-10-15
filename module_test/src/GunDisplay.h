@@ -29,7 +29,7 @@ class GunMenuCallback {
         ON_INIT = 0,
         ON_TOP_SEL, ON_TOP_DESEL, ON_TOP_VAL_CHANGE, ON_TOP_CLICK,
         ON_SUB_SEL, ON_SUB_DESEL, ON_SUB_VAL_CHANGE, ON_SUB_CLICK } op_t;
-    virtual char *onMenuCallback(op_t op, int8_t top, int8_t sub, void **data) = 0;
+    virtual char *onMenuCallback(op_t op, int8_t top, int8_t sub, void *data) = 0;
 };
 
 class GunDisplay {
@@ -139,7 +139,7 @@ class GunDisplay {
     void drawBitmap(int16_t x, int16_t y, const uint8_t bitmap[], uint16_t color);
     void tokenize(char *line, char *token, std::vector<char *> &tokens);
 
-    char *alloc_tmp(char *loc, uint16_t sz, char *text, uint8_t extra);
+    char *alloc_tmp(char *loc, int sz, char *text, uint8_t extra);
     void  free_tmp(char *loc, char *buf);
 
 #if 0
