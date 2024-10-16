@@ -186,7 +186,7 @@ class ButtonTracker {
         return bool(toggled & check);
     }
 
-    bool isToggled() { return bool(_toggled); }
+    bool isChanged() { return bool(_toggled); }
 
     bool isOn(int check) { return bool(_btn & check); }
 

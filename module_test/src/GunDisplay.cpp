@@ -294,7 +294,7 @@ bool GunDisplay::setup(TwoWire *wire) {
 }
 
 void GunDisplay::draw_menu() {
-    if (!display)
+    if (!display || !_menu.updated())
         return;
 
     int8_t idx;
@@ -317,7 +317,7 @@ void GunDisplay::draw_menu() {
         idx_sel = 1;
     } else {
         idx = 0;
-        idx_sel = 0;
+        idx_sel = -1;
     }
 
     char *buf = new char[255];
@@ -330,8 +330,10 @@ void GunDisplay::draw_menu() {
         }
         display->setCursor(0, 20 + i * 11);
         list->at(idx).format(&buf, 255);
-        // draw_centered_text(buf);
-        display->println(buf);
+        if (list->at(idx).get_type() == GunMenu::TYPE_CENTER_STR)
+            draw_centered_text(buf);
+        else
+            display->println(buf);
         idx = (idx + 1)  % list->size();
     }
     delete buf;

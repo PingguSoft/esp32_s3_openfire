@@ -21,12 +21,27 @@
 */
 class GunMenu {
    public:
-    typedef enum { TYPE_NONE = 0, TYPE_BOOL, TYPE_DIGIT_8, TYPE_DIGIT_16 } type_t;
+    typedef enum { TYPE_NORM_STR = 0, TYPE_CENTER_STR, TYPE_BOOL, TYPE_DIGIT_8, TYPE_DIGIT_16 } type_t;
     typedef enum { KEY_NONE = 0, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_ENTER, KEY_BACK } key_t;
+
+    class item_bind {
+       public:
+        item_bind(uint16_t id, void *data) {
+            this->id   = id;
+            this->data = data;
+        }
+
+        uint16_t get_id() { return this->id; }
+        void    *get_data() { return this->data; }
+
+       private:
+        uint16_t id;
+        void    *data;
+    };
 
     class item_meta {
        public:
-        item_meta(void *data, int min, int max) {
+        item_meta(int min, int max, void *data = NULL) {
             this->data = data;
             set_range(min, max);
         }
@@ -54,12 +69,12 @@ class GunMenu {
 
     class menu_item {
        public:
-        menu_item(uint16_t id, char *name, type_t type, std::vector<menu_item> *child = NULL, item_meta *meta = NULL) {
+        menu_item(uint16_t id, char *name, type_t type, item_meta *meta = NULL, std::vector<menu_item> *child = NULL) {
             this->id    = id;
             this->name  = name;
             this->type  = type;
-            this->child = child;
             this->meta  = meta;
+            this->child = child;
         }
 
         void                    set_name(char *name) { this->name = name; }
@@ -72,26 +87,36 @@ class GunMenu {
 
         char *format(char **buf, int sz) {
             switch (type) {
-                case GunMenu::TYPE_NONE:
+                case GunMenu::TYPE_NORM_STR:
+                case GunMenu::TYPE_CENTER_STR:
                     if (child)
-                        snprintf(*buf, sz, " %-14s >", name);
+                        snprintf(*buf, sz, " %-13s >", name);
                     else
-                        snprintf(*buf, sz, " %-14s", name);
+                        snprintf(*buf, sz, " %-13s", name);
                     break;
 
                 case GunMenu::TYPE_DIGIT_8: {
                     uint8_t *v = (uint8_t *)meta->get_data();
-                    snprintf(*buf, sz, " %-14s [%*d]", name, meta->get_digit(), *v);
+                    if (v)
+                        snprintf(*buf, sz, " %-13s [%*d]", name, meta->get_digit(), *v);
+                    else
+                        snprintf(*buf, sz, " %-13s [%*c]", name, meta->get_digit(), 'N');
                 } break;
 
                 case GunMenu::TYPE_DIGIT_16: {
                     uint16_t *v = (uint16_t *)meta->get_data();
-                    snprintf(*buf, sz, " %-14s [%*d]", name, meta->get_digit(), *v);
+                    if (v)
+                        snprintf(*buf, sz, " %-13s [%*d]", name, meta->get_digit(), *v);
+                    else
+                        snprintf(*buf, sz, " %-13s [%*c]", name, meta->get_digit(), 'N');
                 } break;
 
                 case GunMenu::TYPE_BOOL: {
                     bool *v = (bool *)meta->get_data();
-                    snprintf(*buf, sz, " %-14s [%c]", name, *v ? '*' : ' ');
+                    if (v)
+                        snprintf(*buf, sz, " %-13s [%c]", name, *v ? '*' : ' ');
+                    else
+                        snprintf(*buf, sz, " %-13s [%c]", name, 'N');
                 } break;
             }
             return *buf;
@@ -101,26 +126,34 @@ class GunMenu {
         uint16_t                id;
         char                   *name;
         type_t                  type;
-        std::vector<menu_item> *child;
         item_meta              *meta;
+        std::vector<menu_item> *child;
     };
 
     class Callback {
        public:
-        typedef enum { ON_INIT = 0, ON_SEL, ON_DESEL, ON_VAL_CHANGE, ON_CLICK } op_t;
-        virtual void onMenuCallback(uint16_t id, op_t op, GunMenu::menu_item *item) = 0;
+        virtual void onMenuItemInit(uint16_t id, GunMenu::menu_item *item) = 0;
+        virtual void onMenuItemClicked(uint16_t id, GunMenu::menu_item *item) {}
+        virtual void onMenuItemFocused(uint16_t id, GunMenu::menu_item *item) {}
+        virtual void onMenuItemLost(uint16_t id, GunMenu::menu_item *item) {}
+        virtual void onMenuItemChanged(uint16_t id, GunMenu::menu_item *item) {}
     };
 
     GunMenu();
-    void                    setup(char *name, std::vector<menu_item> *menu, Callback *callback);
-    void                    handle_menu(key_t key);
+    void setup(char *name, std::vector<menu_item> *menu, Callback *callback, std::vector<item_bind> *bind = NULL);
+    void handle_menu(key_t key);
+    bool updated() {
+        bool ret  = _is_dirty;
+        _is_dirty = false;
+        return ret;
+    }
     std::vector<menu_item> *get_list() { return _cur; }
     int8_t                  get_pos() { return _cur_pos; }
-    void                    set_pos(int8_t pos) { _cur_pos = pos; }
+    void                    set_pos(int8_t pos) { _cur_pos = pos % _cur->size(); }
     char                   *title();
 
    private:
-    void init(std::vector<menu_item> *menu);
+    void init(std::vector<menu_item> *menu, std::vector<item_bind> *bind);
     bool add_data(type_t type, item_meta *meta, int val);
 
     char                                 *_name;
@@ -130,6 +163,7 @@ class GunMenu {
     std::vector<std::vector<menu_item> *> _vec_last;
     std::vector<int8_t>                   _vec_last_pos;
     Callback                             *_callback;
+    bool                                  _is_dirty;
 };
 
 #endif
