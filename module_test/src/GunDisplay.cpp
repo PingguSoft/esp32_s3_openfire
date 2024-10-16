@@ -270,10 +270,6 @@ static const uint8_t customSplash[] = {
 
 static Adafruit_SSD1306 *display;
 
-GunDisplay::GunDisplay() {
-    _callback = NULL;
-}
-
 void GunDisplay::drawBitmap(int16_t x, int16_t y, const uint8_t bitmap[], uint16_t color) {
     uint16_t w = ((uint16_t)bitmap[1] << 8) | bitmap[0];
     uint16_t h = ((uint16_t)bitmap[3] << 8) | bitmap[2];
@@ -297,65 +293,26 @@ bool GunDisplay::setup(TwoWire *wire) {
     return false;
 }
 
-GunDisplay::menu_info_t *GunDisplay::init_menu(char *title, menu_t *menu, uint8_t sz, GunMenuCallback *callback) {
-    menu_info_t *mi = new menu_info_t;
-    mi->top_idx = 0;
-    mi->sub_idx = -1;
-    mi->size = sz;
-    mi->menu = menu;
-    mi->title = title;
-    mi->callback = callback;
-
-    for (uint8_t i = 0; i < mi->size; i++) {
-        mi->menu[i].internal.min = 0;
-        if (mi->menu[i].type == TYPE_DIGIT_8)
-            mi->menu[i].internal.max = 255;
-        else if (mi->menu[i].type == TYPE_DIGIT_16)
-            mi->menu[i].internal.max = 65535;
-        else
-            mi->menu[i].internal.max = 1;
-
-        mi->callback->onMenuCallback(GunMenuCallback::ON_INIT, i, 0, mi);
-    }
-    handle_menu(mi, KEY_NONE);
-
-    return mi;
-}
-
-char *GunDisplay::alloc_tmp(char *loc, int sz, char *text, uint8_t extra) {
-    char *ret = loc;
-
-    int len = strlen(text);
-    if (len >= sz) {
-        ret = (char *)malloc(len + extra + 1);
-    }
-    return ret;
-}
-
-void GunDisplay::free_tmp(char *loc, char *buf) {
-    if (loc != buf) {
-        free(buf);
-    }
-}
-
-void GunDisplay::draw_top_menu(menu_info_t *mi) {
+void GunDisplay::draw_menu() {
     if (!display)
         return;
 
     int8_t idx;
     int8_t idx_sel;
+    std::vector<GunMenu::menu_item> *list = _menu.get_list();
 
     display->clearDisplay();
     display->setTextColor(WHITE, BLACK);
     display->setCursor(0, 2);
     display->setTextSize(1);
-    draw_centered_text(mi->title);
+
+    draw_centered_text(_menu.title());
     display->drawFastHLine(0, 10, 128, WHITE);
 
-    if (mi->size > 1) {
-        idx = mi->top_idx - 1;
+    if (list->size() > 1) {
+        idx = _menu.get_pos() - 1;
         if (idx < 0) {
-            idx = idx + mi->size;
+            idx = idx + list->size();
         }
         idx_sel = 1;
     } else {
@@ -364,7 +321,7 @@ void GunDisplay::draw_top_menu(menu_info_t *mi) {
     }
 
     char *buf = new char[255];
-    for (int i = 0; i < min((uint8_t)4, mi->size); i++) {
+    for (int i = 0; i < min(4, (int)list->size()); i++) {
         if (i == idx_sel) {
             display->fillRect(0, 20 + i * 11, display->width() - 10, 8, WHITE);
             display->setTextColor(BLACK, WHITE);
@@ -372,231 +329,18 @@ void GunDisplay::draw_top_menu(menu_info_t *mi) {
             display->setTextColor(WHITE, BLACK);
         }
         display->setCursor(0, 20 + i * 11);
-
-        uint8_t digit = 0;
-        if (mi->menu[idx].type >= TYPE_DIGIT_8) {
-            uint16_t v = mi->menu[idx].internal.max;
-
-            while (v > 0) {
-                v = v / 10;
-                digit++;
-            }
-        }
-
-        switch (mi->menu[idx].type) {
-            case TYPE_NONE:
-            case TYPE_LIST:
-                sprintf(buf, " %-14s", mi->menu[idx].top);
-                break;
-
-            case TYPE_DIGIT_8: {
-                uint8_t *v = (uint8_t*)mi->menu[idx].internal.data;
-                sprintf(buf, " %-14s [%*d]", mi->menu[idx].top, digit, *v);
-            }
-            break;
-
-            case TYPE_DIGIT_16: {
-                uint16_t *v = (uint16_t*)mi->menu[idx].internal.data;
-                sprintf(buf, " %-14s [%*d]", mi->menu[idx].top, digit, *v);
-            }
-            break;
-
-            case TYPE_BOOL: {
-                bool *v = (bool*)mi->menu[idx].internal.data;
-                sprintf(buf, " %-14s [%c]", mi->menu[idx].top, *v ? '*' : ' ');
-            }
-            break;
-        }
+        list->at(idx).format(&buf, 255);
         // draw_centered_text(buf);
         display->println(buf);
-        idx = (idx + 1)  % mi->size;
+        idx = (idx + 1)  % list->size();
     }
     delete buf;
 
-    if (mi->size > 1) {
+    if (list->size() > 1) {
         drawBitmap(118, 18, upArrowGlyph, WHITE);
         drawBitmap(118, 59, downArrowGlyph, WHITE);
-    }
-}
-
-void GunDisplay::draw_sub_menu(menu_info_t *mi) {
-    if (!display)
-        return;
-
-    int8_t idx;
-    int8_t idx_sel;
-
-    display->clearDisplay();
-    display->setTextColor(WHITE, BLACK);
-    display->setCursor(0, 2);
-    display->setTextSize(1);
-    draw_centered_text(mi->menu[mi->top_idx].top);
-    display->drawFastHLine(0, 10, 128, WHITE);
-
-    if (mi->menu[mi->top_idx].cnt > 1) {
-        idx = mi->sub_idx - 1;
-        if (idx < 0) {
-            idx = idx + mi->menu[mi->top_idx].cnt;
-        }
-        idx_sel = 1;
-    } else {
-        idx = 0;
-        idx_sel = 0;
-    }
-
-    for (int i = 0; i < min((uint8_t)4, mi->menu[mi->top_idx].cnt); i++) {
-        if (i == idx_sel) {
-            display->setTextColor(BLACK, WHITE);
-        } else {
-            display->setTextColor(WHITE, BLACK);
-        }
-        display->setCursor(0, 20 + i * 11);
-        draw_centered_text(mi->menu[mi->top_idx].subs[idx]);
-        idx = (idx + 1)  % mi->menu[mi->top_idx].cnt;
-    }
-
-    if (mi->menu[mi->top_idx].cnt > 1) {
-        drawBitmap(118, 18, upArrowGlyph, WHITE);
-        drawBitmap(118, 59, downArrowGlyph, WHITE);
-    }
-}
-
-void GunDisplay::draw_menu(menu_info_t *mi) {
-    if (!display)
-        return;
-
-    if (mi->sub_idx == -1) {
-        draw_top_menu(mi);
-    } else {
-        draw_sub_menu(mi);
     }
     display->display();
-}
-
-void GunDisplay::handle_menu(menu_info_t *mi, key_t key) {
-    char *sel_text = NULL;
-
-    switch (key) {
-        case KEY_UP:
-            if (mi->sub_idx == -1) {
-                if (_callback) {
-                    _callback->onMenuCallback(GunMenuCallback::ON_TOP_DESEL, mi->top_idx, mi->sub_idx, mi);
-                }
-                mi->top_idx = mi->top_idx - 1;
-                if (mi->top_idx < 0) {
-                    mi->top_idx = mi->top_idx + mi->size;
-                }
-            } else {
-                if (_callback) {
-                    _callback->onMenuCallback(GunMenuCallback::ON_SUB_DESEL, mi->top_idx, mi->sub_idx, mi);
-                }
-                mi->sub_idx = mi->sub_idx - 1;
-                if (mi->sub_idx < 0) {
-                    mi->sub_idx = mi->sub_idx + mi->menu[mi->top_idx].cnt;
-                }
-            }
-            break;
-
-        case KEY_DOWN:
-            if (mi->sub_idx == -1) {
-                if (_callback) {
-                    _callback->onMenuCallback(GunMenuCallback::ON_TOP_DESEL, mi->top_idx, mi->sub_idx, mi);
-                }
-                mi->top_idx = (mi->top_idx + 1) % mi->size;
-                if (_callback) {
-                    _callback->onMenuCallback(GunMenuCallback::ON_TOP_SEL, mi->top_idx, mi->sub_idx, mi);
-                }
-            } else {
-                if (_callback) {
-                    _callback->onMenuCallback(GunMenuCallback::ON_SUB_DESEL, mi->top_idx, mi->sub_idx, mi);
-                }
-                mi->sub_idx = (mi->sub_idx + 1) % mi->menu[mi->top_idx].cnt;
-                if (_callback) {
-                    _callback->onMenuCallback(GunMenuCallback::ON_SUB_SEL, mi->top_idx, mi->sub_idx, mi);
-                }
-            }
-            break;
-
-        case KEY_RIGHT:
-            if (mi->sub_idx == -1) {
-                if (mi->menu[mi->top_idx].type == TYPE_BOOL) {
-                    bool *v = (bool *)mi->menu[mi->top_idx].internal.data;
-                    *v = !*v;
-                } else if (mi->menu[mi->top_idx].type == TYPE_DIGIT_8) {
-                    uint8_t *v = (uint8_t *)mi->menu[mi->top_idx].internal.data;
-                    if (*v < mi->menu[mi->top_idx].internal.max) {
-                        *v = *v + 1;
-                    }
-                } else if (mi->menu[mi->top_idx].type == TYPE_DIGIT_16) {
-                    uint16_t *v = (uint16_t *)mi->menu[mi->top_idx].internal.data;
-                    if (*v < mi->menu[mi->top_idx].internal.max) {
-                        *v = *v + 1;
-                    }
-                }
-                if (_callback) {
-                    _callback->onMenuCallback(GunMenuCallback::ON_TOP_VAL_CHANGE, mi->top_idx, mi->sub_idx, mi);
-                }
-            }
-            break;
-
-        case KEY_LEFT:
-            if (mi->sub_idx == -1) {
-                if (mi->menu[mi->top_idx].type == TYPE_BOOL) {
-                    bool *v = (bool *)mi->menu[mi->top_idx].internal.data;
-                    *v = !*v;
-                } else if (mi->menu[mi->top_idx].type == TYPE_DIGIT_8) {
-                    uint8_t *v = (uint8_t *)mi->menu[mi->top_idx].internal.data;
-                    if (*v > mi->menu[mi->top_idx].internal.min) {
-                        *v = *v - 1;
-                    }
-                } else if (mi->menu[mi->top_idx].type == TYPE_DIGIT_16) {
-                    uint16_t *v = (uint16_t *)mi->menu[mi->top_idx].internal.data;
-                    if (*v > mi->menu[mi->top_idx].internal.min) {
-                        *v = *v - 1;
-                    }
-                }
-                if (_callback) {
-                    _callback->onMenuCallback(GunMenuCallback::ON_TOP_VAL_CHANGE, mi->top_idx, mi->sub_idx, mi);
-                }
-            }
-            break;
-
-        case KEY_ENTER:
-            if (mi->sub_idx == -1) {
-                mi->sub_idx = mi->menu[mi->top_idx].internal.sel;
-                if (_callback) {
-                    _callback->onMenuCallback(GunMenuCallback::ON_TOP_CLICK, mi->top_idx, mi->sub_idx, mi);
-                }
-                if (mi->menu[mi->top_idx].cnt == 0) {
-                    sel_text = mi->menu[mi->top_idx].top;
-                }
-            } else {
-                mi->menu[mi->top_idx].internal.sel = mi->sub_idx;
-                if (_callback) {
-                    _callback->onMenuCallback(GunMenuCallback::ON_SUB_CLICK, mi->top_idx, mi->sub_idx, mi);
-                }
-                sel_text = (mi->menu[mi->top_idx].cnt > 1) ? mi->menu[mi->top_idx].subs[mi->sub_idx] : NULL;
-            }
-            break;
-
-        case KEY_BACK:
-            if (mi->sub_idx != -1) {
-                mi->sub_idx = -1;
-            }
-            break;
-    }
-
-    if (sel_text) {
-        display->fillRect(0, 16, display->width(), display->height(), BLACK);
-        display->setTextColor(WHITE, BLACK);
-        display->setCursor(0, 30);
-        display->setTextSize(2);
-        draw_centered_text(sel_text);
-        display->display();
-        delay(500);
-        mi->sub_idx = -1;
-    }
-    draw_menu(mi);
 }
 
 void GunDisplay::tokenize(char *line, char *token, std::vector<char *> &tokens) {
@@ -611,13 +355,9 @@ void GunDisplay::tokenize(char *line, char *token, std::vector<char *> &tokens) 
 void GunDisplay::draw_centered_text(char *text, uint8_t flag) {
     int16_t     x1, y1;
     uint16_t    w, h;
-    char        loc_buf[64];
-    char       *buf;
 
-    buf = alloc_tmp(loc_buf, sizeof(loc_buf), text, 0);
-    strcpy(buf, text);
     std::vector<char *> tokens;
-    tokenize((char *)buf, (char *)"\n", tokens);
+    tokenize((char *)text, (char *)"\n", tokens);
 
     int16_t x;
     int16_t y = display->getCursorY();
@@ -635,8 +375,10 @@ void GunDisplay::draw_centered_text(char *text, uint8_t flag) {
         display->setCursor(x, y);
         display->print(str);
         y += h;
+
+        if (str != text && *(str - 1)=='\0')
+            *(str - 1) = '\n';
     }
-    free_tmp(loc_buf, buf);
 }
 
 void GunDisplay::TopPanelUpdate(char *textPrefix, char *textInput) {
@@ -655,15 +397,6 @@ void GunDisplay::TopPanelUpdate(char *textPrefix, char *textInput) {
 
 
 #if 0
-void GunDisplay::draw_menu(text_t *menu) {
-    for (uint8_t i = 0; menu[i].text != NULL; i++) {
-        display->setTextSize(menu[i].text_size);
-        display->setTextColor(menu[i].inverse ? BLACK : WHITE, menu[i].inverse ? WHITE : BLACK);
-        display->setCursor(menu[i].x, menu[i].y);
-        display->println(menu[i].text);
-    }
-}
-
 void GunDisplay::ScreenModeChange(int8_t screenMode, bool isAnalog, bool isBT) {
     if (!display)
         return;

@@ -57,50 +57,34 @@ static const pin_info_t _tbl_sw_pins[] = {
 * VARIABLES
 *****************************************************************************************
 */
-static GunDisplay::menu_t _menu[] = {
+static std::vector<GunMenu::menu_item> _menu_sub[] = {
     {
-        "Profile",
-        GunDisplay::TYPE_LIST,
-        4, {"1", "2", "3", "4" },
+        {0x0101, "1", GunMenu::TYPE_NONE },
+        {0x0102, "2", GunMenu::TYPE_NONE },
+        {0x0103, "3", GunMenu::TYPE_NONE },
+        {0x0104, "4", GunMenu::TYPE_NONE }
     },
     {
-        "Run Mode",
-        GunDisplay::TYPE_LIST,
-        2, {"Normal", "Average", },
+        {0x0201, "Normal", GunMenu::TYPE_NONE },
+        {0x0202, "Average", GunMenu::TYPE_NONE },
     },
     {
-        "IR Sensitivity",
-        GunDisplay::TYPE_DIGIT_8,
-    },
-    {
-        "Off-scr button",
-        GunDisplay::TYPE_BOOL,
-    },
-    {
-        "Rumble",
-        GunDisplay::TYPE_BOOL,
-    },
-    {
-        "Solenoid",
-        GunDisplay::TYPE_BOOL,
-    },
-    {
-        "Calibration",
-        GunDisplay::TYPE_LIST,
-        1, { "Welcome!\nPull trigger to\nstart calibration!" },
-    },
-    {
-        "Save",
-        GunDisplay::TYPE_NONE,
-        0,
-    },
-    {
-        "Exit",
-        GunDisplay::TYPE_NONE,
-        0,
-    },
+        {0x0301, "Welcome!\nPull trigger to\nstart calibration!", GunMenu::TYPE_NONE}
+    }
+
 };
 
+static std::vector<GunMenu::menu_item> _menu = {
+    {0x0100, "Profile", GunMenu::TYPE_NONE, &_menu_sub[0] },
+    {0x0200, "Run Mode", GunMenu::TYPE_NONE, &_menu_sub[1] },
+    {0x0300, "Calibration", GunMenu::TYPE_NONE, &_menu_sub[2] },
+    {0x0400, "IR Sensitivity", GunMenu::TYPE_DIGIT_8 },
+    {0x0500, "Off-scr button", GunMenu::TYPE_BOOL },
+    {0x0600, "Rumble",GunMenu::TYPE_BOOL },
+    {0x0700, "Solenoid", GunMenu::TYPE_BOOL },
+    {0x0800, "Save", GunMenu::TYPE_NONE },
+    {0x0900, "Exit", GunMenu::TYPE_NONE },
+};
 
 /*
 *****************************************************************************************
@@ -145,7 +129,7 @@ int debug_printf(const char *format, ...) {
     return ret;
 }
 
-class GunMain : public GunDockCallback, public GunMameHookerCallback, public GunMenuCallback {
+class GunMain : public GunDockCallback, public GunMameHookerCallback, public GunMenu::Callback {
    public:
     GunMain() {
         _gunJoy      = new GunJoyButton();
@@ -206,67 +190,76 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback, public Gun
         }
     }
 
-    char *onMenuCallback(op_t op, int8_t top, int8_t sub, void *data) {
-        char *ret = NULL;
-        GunDisplay::menu_info_t *mi = (GunDisplay::menu_info_t *)data;
-        static char buf[80];
+    void onMenuCallback(uint16_t id, op_t op, GunMenu::menu_item *item) {
+        LOGV("%x, %d\n", id, op);
 
-        LOGV("%d, %d-%d\n", op, top, sub);
-
-        switch (top) {
-            case 0:     // profile
+        switch (id) {
+            case 0x0100:
                 switch (op) {
-                    case ON_TOP_CLICK:
-                        for (uint8_t i = 0; i < 4; i++) {
-                            _gunDisp->set_menu_subs(mi, 0, i, _gunSettings->get_profile(i)->name);
-                        }
-                        _gunDisp->set_menu_sel(mi, top, _gunSettings->get_profile_idx());
-                        break;
-
-                    case ON_SUB_CLICK:
-                        _gunSettings->set_profile_idx(sub);
+                    case ON_CLICK:
+                        _gunDisp->menu()->set_pos(_gunSettings->get_profile_idx());
                         break;
                 }
                 break;
 
-            case 1:     // runmode
+            case 0x0101:     // profile
+            case 0x0102:
+            case 0x0103:
+            case 0x0104:
                 switch (op) {
-                    case ON_TOP_CLICK:
-                        _gunDisp->set_menu_sel(mi, top, _gunSettings->get_profile()->runMode);
+                    case ON_INIT:
+                        item->set_name(_gunSettings->get_profile(id - 0x0101)->name);
                         break;
 
-                    case ON_SUB_CLICK:
-                        _gunSettings->get_profile()->runMode = sub;
+                    case ON_CLICK:
+                        _gunSettings->set_profile_idx(id - 0x0101);
                         break;
                 }
                 break;
 
-            case 2:     // ir
-                if (op == ON_INIT) {
-                    _gunDisp->set_menu_data(mi, top, &_gunSettings->get_profile()->irSensitivity);
-                    _gunDisp->set_menu_data_range(mi, top, 0, 3);
+            case 0x0200:     // runmode
+                switch (op) {
+                    case ON_CLICK:
+                        _gunDisp->menu()->set_pos(_gunSettings->get_profile()->runMode);
+                        break;
                 }
                 break;
 
-            case 3:     // off-screen
-                if (op == ON_INIT) {
-                    _gunDisp->set_menu_data(mi, top, &_gunSettings->get_feature_config()->lowButtonMode);
+            case 0x0201:
+            case 0x0202:
+                switch (op) {
+                    case ON_CLICK:
+                        _gunSettings->get_profile()->runMode = (id - 0x0201);
+                        break;
                 }
                 break;
 
-            case 4:     // rumble
+            case 0x0300:     // cal
+                break;
+
+            case 0x0400:     // ir
                 if (op == ON_INIT) {
-                    _gunDisp->set_menu_data(mi, top, &_gunSettings->get_feature_config()->rumbleActive);
+                    item->get_meta()->set_data(&_gunSettings->get_profile()->irSensitivity);
+                    item->get_meta()->set_range(0, 3);
                 }
                 break;
 
-            case 5:     // solenoid
+            case 0x0500:     // off-screen
                 if (op == ON_INIT) {
-                    _gunDisp->set_menu_data(mi, top, &_gunSettings->get_feature_config()->solenoidActive);
+                    item->get_meta()->set_data(&_gunSettings->get_feature_config()->lowButtonMode);
                 }
                 break;
 
-            case 6:     // cal
+            case 0x0600:     // rumble
+                if (op == ON_INIT) {
+                    item->get_meta()->set_data(&_gunSettings->get_feature_config()->rumbleActive);
+                }
+                break;
+
+            case 0x0700:     // solenoid
+                if (op == ON_INIT) {
+                    item->get_meta()->set_data(&_gunSettings->get_feature_config()->solenoidActive);
+                }
                 break;
 
             case 7:     // save
@@ -275,7 +268,6 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback, public Gun
             case 8:     // exit
                 break;
         }
-        return ret;
     }
 
     void update_auto_trigger() {
@@ -321,7 +313,8 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback, public Gun
         pinMode(PIN_PERI_SCL, INPUT_PULLUP);
         Wire1.begin(PIN_PERI_SDA, PIN_PERI_SCL, 400000);
         _gunDisp->setup(&Wire1);
-        _gunMenu = _gunDisp->init_menu("SETTINGS", _menu, ARRAY_SIZE(_menu), this);
+        _gunDisp->menu()->setup("SETTINGS", &_menu, this);
+        _gunDisp->draw_menu();
 
         // joypad setting
         for (int i = 0; i < ARRAY_SIZE(_tbl_sw_pins); i++) {
@@ -472,22 +465,23 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback, public Gun
         _btn_trk.begin(btns);
 
         if (_btn_trk.isPressed(PAD_BUTTON_TL) || _btn_trk.isPressed(PAD_HAT_MASK_Y_P << 24)) {              // up
-            _gunDisp->handle_menu(_gunMenu, GunDisplay::KEY_UP);
+            _gunDisp->menu()->handle_menu(GunMenu::KEY_UP);
         } else if (_btn_trk.isPressed(PAD_BUTTON_Y) || _btn_trk.isPressed(PAD_HAT_MASK_Y_M << 24)) {        // down
-            _gunDisp->handle_menu(_gunMenu, GunDisplay::KEY_DOWN);
+            _gunDisp->menu()->handle_menu(GunMenu::KEY_DOWN);
         }
 
         if (_btn_trk.isPressed(PAD_BUTTON_START) || _btn_trk.isPressed(PAD_HAT_MASK_X_P << 24)) {           // right
-            _gunDisp->handle_menu(_gunMenu, GunDisplay::KEY_RIGHT);
+            _gunDisp->menu()->handle_menu(GunMenu::KEY_RIGHT);
         } else if (_btn_trk.isPressed(PAD_BUTTON_SELECT) || _btn_trk.isPressed(PAD_HAT_MASK_X_M << 24)) {   // left
-            _gunDisp->handle_menu(_gunMenu, GunDisplay::KEY_LEFT);
+            _gunDisp->menu()->handle_menu(GunMenu::KEY_LEFT);
         }
 
         if (_btn_trk.isPressed(PAD_BUTTON_TR)) {            // trigger
-            _gunDisp->handle_menu(_gunMenu, GunDisplay::KEY_ENTER);
+            _gunDisp->menu()->handle_menu(GunMenu::KEY_ENTER);
         } else if (_btn_trk.isPressed(PAD_BUTTON_A)) {      // back
-            _gunDisp->handle_menu(_gunMenu, GunDisplay::KEY_BACK);
+            _gunDisp->menu()->handle_menu(GunMenu::KEY_BACK);
         }
+        _gunDisp->draw_menu();
 
         _btn_trk.end();
     }
@@ -527,7 +521,6 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback, public Gun
     GunCalibration        *_gunCali;
     GunSettings           *_gunSettings;
     GunDock               *_gunDock;
-    GunDisplay::menu_info_t *_gunMenu;
     GunDisplay            *_gunDisp;
     GunMameHooker         *_gunMameHooker;
     ButtonTracker          _btn_trk;
