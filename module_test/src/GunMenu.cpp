@@ -66,10 +66,13 @@ void GunMenu::setup(char *name, std::vector<menu_item> *menu, Callback *callback
 }
 
 bool GunMenu::touch(type_t type, item_meta *meta, bool inc) {
-    int val = meta->get_step();
+    int val;
 
-    if (!inc)
-        val = -val;
+    if (meta) {
+        val = meta->get_step();
+        if (!inc)
+            val = -val;
+    }
 
     switch (type) {
         case TYPE_NORM_STR:
@@ -150,7 +153,7 @@ void GunMenu::handle_event(key_t key) {
                 if (_callback)
                     _callback->onMenuItemClicked(id, &item);
             } else {
-                is_updated = touch(_cur->at(_cur_pos).get_type(), item.get_meta(), true);
+                is_updated = touch(item.get_type(), item.get_meta(), true);
                 if (is_updated) {
                     if (_callback)
                         _callback->onMenuItemChanged(id, &item);
@@ -167,7 +170,7 @@ void GunMenu::handle_event(key_t key) {
             break;
     }
 
-    if (is_back) {
+    if (is_back && _cur != _top) {
         auto it = _parent_map.find(_cur);
         pinfo_t *p = (it == _parent_map.end()) ? NULL : it->second;
         _cur = p->parent;

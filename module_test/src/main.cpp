@@ -39,14 +39,14 @@ typedef struct {
 *****************************************************************************************
 */
 static const pin_info_t _tbl_sw_pins[] = {
-    {PIN_BUTTON_START, INPUT_PULLUP, 0, PAD_BUTTON_START, 5},
-    {PIN_BUTTON_SELECT, INPUT_PULLUP, 0, PAD_BUTTON_SELECT, 6},
-    {PIN_BUTTON_PEDAL, INPUT_PULLUP, MOUSE_BACKWARD, PAD_BUTTON_X, 11},
+    {PIN_BUTTON_START, INPUT_PULLUP, 0, GUN_BTN_START, 5},
+    {PIN_BUTTON_SELECT, INPUT_PULLUP, 0, GUN_BTN_SELECT, 6},
+    {PIN_BUTTON_PEDAL, INPUT_PULLUP, MOUSE_FORWARD, GUN_BTN_PEDAL, 11},
 
-    {PIN_TRIGGER, INPUT_PULLUP, MOUSE_LEFT, PAD_BUTTON_TR, 1},
-    {PIN_BUTTON_A, INPUT_PULLUP, MOUSE_RIGHT, PAD_BUTTON_TL, 2},
-    {PIN_BUTTON_B, INPUT_PULLUP, MOUSE_MIDDLE, PAD_BUTTON_Y, 3},
-    {PIN_BUTTON_C, INPUT_PULLUP, MOUSE_BACKWARD, PAD_BUTTON_A, 4},
+    {PIN_TRIGGER, INPUT_PULLUP, MOUSE_LEFT, GUN_BTN_TRIGGER, 1},
+    {PIN_BUTTON_A, INPUT_PULLUP, MOUSE_RIGHT, GUN_BTN_A, 2},
+    {PIN_BUTTON_B, INPUT_PULLUP, MOUSE_MIDDLE, GUN_BTN_B, 3},
+    {PIN_BUTTON_C, INPUT_PULLUP, MOUSE_BACKWARD, GUN_BTN_C, 4},
 
     {PIN_JOY_ADC_Y, ANALOG, 0, PAD_AXIS_Y | (JOY_ADC_MAX << 12) | (JOY_ADC_MIN), ( 7 << 8) | (8 << 0)},     // up-7, down-8
     {PIN_JOY_ADC_X, ANALOG, 0, PAD_AXIS_X | (JOY_ADC_MAX << 12) | (JOY_ADC_MIN), (10 << 8) | (9 << 0)},     // right-10, left-9
@@ -69,12 +69,11 @@ static const uint16_t IDM_RUMBLE_INTERVAL  = 0x0503;
 static const uint16_t IDM_SOLENOID         = 0x0600;
 static const uint16_t IDM_SOLENOID_EN      = 0x0601;
 static const uint16_t IDM_SOLENOID_POWER   = 0x0602;
-static const uint16_t IDM_SOLENOID_NORM    = 0x0603;
-static const uint16_t IDM_SOLENOID_FAST    = 0x0604;
-static const uint16_t IDM_SOLENOID_LONG    = 0x0605;
-static const uint16_t IDM_AUTO_FIRE        = 0x0700;
-static const uint16_t IDM_AUTO_FIRE_EN     = 0x0701;
-static const uint16_t IDM_AUTO_FIRE_WAIT   = 0x0702;
+static const uint16_t IDM_SOLENOID_HOLD    = 0x0603;
+static const uint16_t IDM_AUTOFIRE         = 0x0700;
+static const uint16_t IDM_AUTOFIRE_EN      = 0x0701;
+static const uint16_t IDM_AUTOFIRE_ST_DLY  = 0x0702;
+static const uint16_t IDM_AUTOFIRE_RPT_DLY = 0x0702;
 static const uint16_t IDM_CALIBRATION      = 0x0800;
 static const uint16_t IDM_CALIBRATION_MSG  = 0x0801;
 static const uint16_t IDM_SAVE             = 0x0900;
@@ -105,14 +104,13 @@ static std::vector<GunMenu::menu_item> _menu_sub_rumble = {
 static std::vector<GunMenu::menu_item> _menu_sub_solenoid = {
     {IDM_SOLENOID_EN, "Enable", GunMenu::TYPE_BOOL },
     {IDM_SOLENOID_POWER, "Intensity", GunMenu::TYPE_DIGIT_8 },
-    {IDM_SOLENOID_NORM, "Norm Int", GunMenu::TYPE_DIGIT_16 },
-    {IDM_SOLENOID_FAST, "Fast Int", GunMenu::TYPE_DIGIT_16 },
-    {IDM_SOLENOID_LONG, "Long Int", GunMenu::TYPE_DIGIT_16 },
+    {IDM_SOLENOID_HOLD, "Hold Delay", GunMenu::TYPE_DIGIT_16 },
 };
 
 static std::vector<GunMenu::menu_item> _menu_sub_autofire = {
-    {IDM_AUTO_FIRE_EN, "Enable", GunMenu::TYPE_BOOL },
-    {IDM_AUTO_FIRE_WAIT, "Wait Factor", GunMenu::TYPE_DIGIT_8 },
+    {IDM_AUTOFIRE_EN, "Enable", GunMenu::TYPE_BOOL },
+    {IDM_AUTOFIRE_ST_DLY, "Strt Delay", GunMenu::TYPE_DIGIT_16 },
+    {IDM_AUTOFIRE_RPT_DLY, "Rpt Delay", GunMenu::TYPE_DIGIT_16 },
 };
 
 static std::vector<GunMenu::menu_item> _menu_sub_cal = {
@@ -126,7 +124,7 @@ static std::vector<GunMenu::menu_item> _menu_top = {
     {IDM_OFFSCR_BTN, "OffScrn button", GunMenu::TYPE_BOOL },
     {IDM_RUMBLE, "Rumble",GunMenu::TYPE_NORM_STR, &_menu_sub_rumble },
     {IDM_SOLENOID, "Solenoid", GunMenu::TYPE_NORM_STR, &_menu_sub_solenoid },
-    {IDM_AUTO_FIRE, "Auto Fire", GunMenu::TYPE_NORM_STR, &_menu_sub_autofire },
+    {IDM_AUTOFIRE, "Auto Fire", GunMenu::TYPE_NORM_STR, &_menu_sub_autofire },
     {IDM_CALIBRATION, "Calibration", GunMenu::TYPE_NORM_STR, &_menu_sub_cal },
     {IDM_SAVE, "Save", GunMenu::TYPE_NORM_STR },
     {IDM_EXIT, "Exit", GunMenu::TYPE_NORM_STR },
@@ -180,7 +178,7 @@ int debug_printf(const char *format, ...) {
 
 class GunMenuHandler : public GunMenu::Callback {
    public:
-    GunMenuHandler(GunSettings *settings, GunDisplay *display) : _settings(settings), _display(display) {}
+    GunMenuHandler(GunSettings *settings, GunDisplay *display) : _settings(settings), _display(display), _enable(true) {}
 
     void onMenuItemInit(uint16_t id, GunMenu::menu_item *item) {
         switch (id) {
@@ -226,9 +224,10 @@ class GunMenuHandler : public GunMenu::Callback {
             {IDM_RUMBLE_INTERVAL, new GunMenu::item_meta(&_settings->get_param_config()->rumbleInterval, 50, 500, 3, 5)},
             {IDM_SOLENOID_EN, new GunMenu::item_meta(&_settings->get_feature_config()->solenoidActive)},
             {IDM_SOLENOID_POWER, new GunMenu::item_meta(&_settings->get_param_config()->solenoidIntensity, 0, 255, 3)},
-            {IDM_SOLENOID_NORM, new GunMenu::item_meta(&_settings->get_param_config()->solenoidNormalInterval, 40, 300, 3, 5)},
-            {IDM_SOLENOID_FAST, new GunMenu::item_meta(&_settings->get_param_config()->solenoidFastInterval, 20, 80, 3, 5)},
-            {IDM_SOLENOID_LONG, new GunMenu::item_meta(&_settings->get_param_config()->solenoidLongInterval, 300, 600, 3, 5)},
+            {IDM_SOLENOID_HOLD, new GunMenu::item_meta(&_settings->get_param_config()->solenoidNormalInterval, 40, 100, 3, 5)},
+            {IDM_AUTOFIRE_EN, new GunMenu::item_meta(&_settings->get_feature_config()->autofireActive)},
+            {IDM_AUTOFIRE_ST_DLY, new GunMenu::item_meta(&_settings->get_param_config()->solenoidLongInterval,  50, 500, 3, 5)},
+            {IDM_AUTOFIRE_RPT_DLY, new GunMenu::item_meta(&_settings->get_param_config()->solenoidFastInterval, 40, 100, 3, 5)},
         };
         _menu.setup("SETTINGS", &_menu_top, this, &bind_tbl);
     }
@@ -239,19 +238,19 @@ class GunMenuHandler : public GunMenu::Callback {
 
         _btn_trk.begin(btns);
 
-        if (_btn_trk.isPressed(PAD_BUTTON_TL) || _btn_trk.isPressed(PAD_HAT_MASK_Y_P << 24)) {
+        if (_btn_trk.isPressed(GUN_BTN_START) || _btn_trk.isPressed(PAD_HAT_MASK_Y_P << 24)) {
             _menu.handle_event(GunMenu::KEY_UP);
-        } else if (_btn_trk.isPressed(PAD_BUTTON_Y) || _btn_trk.isPressed(PAD_HAT_MASK_Y_M << 24)) {
+        } else if (_btn_trk.isPressed(GUN_BTN_SELECT) || _btn_trk.isPressed(PAD_HAT_MASK_Y_M << 24)) {
             _menu.handle_event(GunMenu::KEY_DOWN);
-        } else if (_btn_trk.isPressed(PAD_BUTTON_START) || _btn_trk.isPressed(PAD_HAT_MASK_X_P << 24)) {
+        } else if (_btn_trk.isPressed(GUN_BTN_A) || _btn_trk.isPressed(PAD_HAT_MASK_X_P << 24)) {
             _menu.handle_event(GunMenu::KEY_RIGHT);
-        } else if (_btn_trk.isPressed(PAD_BUTTON_SELECT) || _btn_trk.isPressed(PAD_HAT_MASK_X_M << 24)) {
+        } else if (_btn_trk.isPressed(GUN_BTN_B) || _btn_trk.isPressed(PAD_HAT_MASK_X_M << 24)) {
             _menu.handle_event(GunMenu::KEY_LEFT);
         }
 
-        if (_btn_trk.isPressed(PAD_BUTTON_TR)) {
+        if (_btn_trk.isPressed(GUN_BTN_TRIGGER)) {
             _menu.handle_event(GunMenu::KEY_ENTER);
-        } else if (_btn_trk.isPressed(PAD_BUTTON_A)) {
+        } else if (_btn_trk.isPressed(GUN_BTN_PEDAL)) {
             _menu.handle_event(GunMenu::KEY_BACK);
         }
         if (_menu.updated())
@@ -288,9 +287,25 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback {
     void onMameHookCallback(uint8_t cmd, uint8_t *pData, uint16_t size, Stream *stream) {}
 
     void onDockCallback(uint8_t cmd, uint8_t *pData, uint16_t size, Stream *stream) {
+        static GunSettings::GunMode_e last_mode;
+
         _gunSettings->onDockCallback(cmd, pData, size, stream);
 
         switch (cmd) {
+            case GunDock::CMD_DOCK_MODE:
+                if (*pData) {
+                    LOGV("docked mode\n");
+                    last_mode = update_gun_mode(GunSettings::GunMode_Docked);
+                } else {
+                    LOGV("docked mode exit\n");
+                    update_gun_mode(last_mode);
+                }
+                break;
+
+            case GunDock::CMD_CALIBRATION_MODE:
+                update_gun_mode(GunSettings::GunMode_Calibration);
+                break;
+
             case GunDock::CMD_IR_BRIGHTNESS: {
                 uint8_t lvl = *pData - '0';
                 LOGV("ir brightness : %d\n", lvl);
@@ -323,24 +338,38 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback {
                 esp_restart();
                 break;
 
-            case GunDock::CMD_SAVE_PREFERENCE:
-                update_auto_fire();
-                update_force_feedback();
-                break;
-
             default:
                 break;
         }
     }
 
-    void update_auto_fire() {
-        if (_gunSettings->get_gun_mode() == GunSettings::GunMode_Calibration ||
-            !_gunSettings->get_feature_config()->autofireActive) {
-            _gunJoy->set_auto_trigger(0, 0);
-        } else if (_gunSettings->get_feature_config()->autofireActive) {
-            GunSettings::params_map_t *params = _gunSettings->get_param_config();
-            _gunJoy->set_auto_trigger(params->solenoidLongInterval, params->solenoidNormalInterval);
+    void update_auto_fire(GunSettings::GunMode_e mode) {
+        uint16_t strt_dly;
+        uint16_t rpt_dly;
+
+        switch (mode) {
+            case GunSettings::GunMode_Calibration:
+                strt_dly = 0;
+                rpt_dly = 0;
+                break;
+
+            case GunSettings::GunMode_Pause:
+                strt_dly = 300;
+                rpt_dly = 200;
+                break;
+
+            default:
+                if (_gunSettings->get_feature_config()->autofireActive) {
+                    GunSettings::params_map_t *params = _gunSettings->get_param_config();
+                    strt_dly = params->solenoidLongInterval;
+                    rpt_dly = params->solenoidFastInterval;
+                } else {
+                    strt_dly = 0;
+                    rpt_dly = 0;
+                }
+                break;
         }
+        _gunJoy->set_auto_trigger(strt_dly, rpt_dly);
     }
 
     void update_force_feedback(uint8_t mode=0) {
@@ -354,15 +383,22 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback {
         _gunFFB->set_power(params->solenoidIntensity);
     }
 
-    void update_gun_mode(GunSettings::GunMode_e mode) {
+    GunSettings::GunMode_e update_gun_mode(GunSettings::GunMode_e mode) {
+        GunSettings::GunMode_e last = _gunSettings->get_gun_mode();
+
         _gunSettings->set_gun_mode(mode);
-        update_auto_fire();
+        update_auto_fire(mode);
         update_force_feedback();
+        if (mode == GunSettings::GunMode_Calibration)
+            _gunCali->begin(last);
+        LOGV("mode %d->%d\n", last, mode);
+
+        return last;
     }
 
     void setup() {
         // load settings
-        bool is_virgin = _gunSettings->setup();
+        bool is_loaded = _gunSettings->setup();
 
         // pixels
         _pixels->begin();
@@ -403,10 +439,9 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback {
         // calibration setup
         _gunCali->setup(_gunSettings, _gunHID, _gunCam);
 
-        if (is_virgin) {
+        if (!is_loaded) {
             LOGV("calibration begin\n");
             update_gun_mode(GunSettings::GunMode_Calibration);
-            _gunCali->begin();
         } else {
             update_gun_mode(GunSettings::GunMode_Run);
         }
@@ -437,7 +472,7 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback {
         _gunDock->get_stream()->print(buf);
     }
 
-    void handle_gun_mode(GunJoyButton::report_t *report) {
+    void handle_event(GunJoyButton::report_t *report) {
         int8_t   x;
         int8_t   y;
 
@@ -451,12 +486,14 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback {
                 break;
 
             case GunSettings::GunMode_Calibration:
-            case GunSettings::GunMode_Verification:
-                if (!_gunCali->loop(report->pad_buttons, mode)) {
-                    _gunCali->end();
-                    update_auto_fire();
+            case GunSettings::GunMode_Verification: {
+                GunSettings::GunMode_e ret = _gunCali->loop(report->pad_buttons, mode);
+                if (ret != mode) {
+                    if (ret == GunSettings::GunMode_Init)
+                        ret = _gunCali->end();
+                    update_gun_mode(ret);
                 }
-                break;
+            } break;
 
             case GunSettings::GunMode_Docked:
                 for (int i = 0; i < ARRAY_SIZE(_tbl_sw_pins); i++) {
@@ -502,16 +539,29 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback {
                 break;
 
             case GunSettings::GunMode_Run:
-                if (_gunCam->avail()) {
-                    _gunHID->report_mouse(_gunCam->x(), _gunCam->y(), report->mouse_buttons);
+                if (_btn_trk.isPressed(GUN_BTN_SELECT | GUN_BTN_PEDAL)) {
+                    update_gun_mode(GunSettings::GunMode_Pause);
+                } else {
+                    // cam processing
+                    _gunCam->loop();
+
+                    if (_gunCam->avail()) {
+                        _gunHID->report_mouse(_gunCam->x(), _gunCam->y(), report->mouse_buttons);
+                    }
+                    x = map(_gunCam->x(), 0, GunHID::mouse_max_x, -127, 127);
+                    y = map(_gunCam->y(), 0, GunHID::mouse_max_y, -127, 127);
+                    _gunHID->report_gamepad(x, y, 0, report->pad_buttons);
+
+                    // force feed back processing
+                    _gunFFB->loop();
                 }
-                x = map(_gunCam->x(), 0, GunHID::mouse_max_x, -127, 127);
-                y = map(_gunCam->y(), 0, GunHID::mouse_max_y, -127, 127);
-                _gunHID->report_gamepad(x, y, 0, report->pad_buttons);
                 break;
 
             case GunSettings::GunMode_Pause:
                 _gunMenu->loop(btns);
+                if (_btn_trk.isPressed(GUN_BTN_START | GUN_BTN_PEDAL)) {
+                    update_gun_mode(GunSettings::GunMode_Run);
+                }
                 break;
         }
         _btn_trk.end();
@@ -533,13 +583,7 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback {
                  report->mouse_buttons);
         }
 
-        handle_gun_mode(report);
-
-        // cam processing
-        _gunCam->loop();
-
-        // force feed back processing
-        _gunFFB->loop();
+        handle_event(report);
     }
 
    private:

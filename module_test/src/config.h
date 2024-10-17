@@ -33,12 +33,13 @@
 // buttons
 #define PIN_JOY_ADC_X     4
 #define PIN_JOY_ADC_Y     5
-#define PIN_BUTTON_START  6
-#define PIN_BUTTON_SELECT 7
-#define PIN_BUTTON_PEDAL  15
-#define PIN_BUTTON_A      9
-#define PIN_BUTTON_B      10
-#define PIN_BUTTON_C      13
+#define PIN_BUTTON_START  9
+#define PIN_BUTTON_SELECT 10
+#define PIN_BUTTON_PEDAL  13
+
+#define PIN_BUTTON_A      6
+#define PIN_BUTTON_B      7
+#define PIN_BUTTON_C      15
 #define PIN_TRIGGER       14
 
 
