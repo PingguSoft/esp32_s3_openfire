@@ -96,13 +96,8 @@ void GunSettings::onDockCallback(uint8_t cmd, uint8_t *pData, uint16_t size, Str
 
         case GunDock::CMD_DOCK_MODE:
             if (*pData) {
-                LOGV("docked mode\n");
-                set_gun_mode(GunSettings::GunMode_Docked);
                 stream->printf("OpenFIRE,%.1f,%s,%s,%i\r\n", OPENFIRE_VERSION, OPENFIRE_CODENAME, OPENFIRE_BOARD,
                                get_profile_idx());
-            } else {
-                LOGV("docked mode exit\n");
-                set_gun_mode(GunSettings::GunMode_Run);
             }
             break;
 
@@ -170,7 +165,6 @@ void GunSettings::onDockCallback(uint8_t cmd, uint8_t *pData, uint16_t size, Str
             uint8_t idx = *pData - '0' - 1;
             set_profile_idx(idx);
             stream->printf("Profile:  %d\r\n", idx);
-            set_gun_mode(GunMode_Calibration);
         } break;
 
         case GunDock::CMD_SAVE_PREFERENCE:

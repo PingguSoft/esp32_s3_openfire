@@ -13,9 +13,9 @@ class GunCalibration {
    public:
     GunCalibration() {}
     void setup(GunSettings *settings, GunHID *hid, GunCamera *cam);
-    void begin();
-    void end();
-    bool loop(uint16_t buttons, GunSettings::GunMode_e mode);
+    void begin(GunSettings::GunMode_e mode=GunSettings::GunMode_Init);
+    GunSettings::GunMode_e end();
+    GunSettings::GunMode_e loop(uint16_t buttons, GunSettings::GunMode_e mode);
 
    private:
     void        mouse_ani_begin(int8_t stage);
@@ -41,7 +41,7 @@ class GunCalibration {
     ButtonTracker                       _btn_trk;
     GunSettings::profile_data_t        *_pd;
     GunSettings::profile_data_t         _pd_save;
-    GunSettings::GunMode_e              _prv_mode;
+    GunSettings::GunMode_e              _last_mode;
 };
 
 #endif

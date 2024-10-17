@@ -23,15 +23,18 @@ void GunCalibration::setup(GunSettings *settings, GunHID *hid, GunCamera *cam) {
     _timer = new Timer<1, millis, GunCalibration *>();
 }
 
-void GunCalibration::begin() {
+void GunCalibration::begin(GunSettings::GunMode_e mode) {
     _stage    = Cali_Init;
     _ani_info = {0, 0, 0, 0, 0};
     _pd_save  = *_settings->get_profile();
+    if (mode != GunSettings::GunMode_Init)
+        _last_mode = mode;
 }
 
-void GunCalibration::end() {
+GunSettings::GunMode_e GunCalibration::end() {
     _stage    = Cali_Init;
     _ani_info = {0, 0, 0, 0, 0};
+    return _last_mode;
 }
 
 bool GunCalibration::timer_mouse_ani_task(GunCalibration *p) {
@@ -69,13 +72,13 @@ void GunCalibration::mouse_ani_begin(int8_t stage) {
     _ani_info.dy  = (_ani_info.y - ly) / _ani_info.ctr;
 }
 
-bool GunCalibration::loop(uint16_t buttons, GunSettings::GunMode_e mode) {
-    bool ret = true;
+GunSettings::GunMode_e GunCalibration::loop(uint16_t buttons, GunSettings::GunMode_e mode) {
+    GunSettings::GunMode_e ret = mode;
 
     _btn_trk.begin(buttons);
     if (mode == GunSettings::GunMode_Calibration) {
         if (!is_mouse_animating()) {
-            if (_btn_trk.isPressed(PAD_BUTTON_TR)) {
+            if (_btn_trk.isPressed(GUN_BTN_TRIGGER)) {
                 GunSettings::profile_data_t* pd = _settings->get_profile();
                 OpenFIRE_Layout *layout = _cam->get_layout();
 
@@ -129,10 +132,10 @@ bool GunCalibration::loop(uint16_t buttons, GunSettings::GunMode_e mode) {
                         // Update Cam centre in perspective library
                         _cam->get_perspective()->source(pd->adjX, pd->adjY);
                         _cam->get_perspective()->deinit(0);
-                        _settings->set_gun_mode(GunSettings::GunMode_Verification);
+                        ret = GunSettings::GunMode_Verification;
                         break;
                 }
-            } else if (_btn_trk.isPressed(PAD_BUTTON_TL)) {
+            } else if (_btn_trk.isPressed(GUN_BTN_A)) {
                 _stage = Cali_Init;
                 LOGV("Calibration restart !!!\n");
             }
@@ -140,12 +143,12 @@ bool GunCalibration::loop(uint16_t buttons, GunSettings::GunMode_e mode) {
     } else if (mode == GunSettings::GunMode_Verification) {
         _hid->report_mouse(_cam->x(), _cam->y(), 0);
 
-        if (_btn_trk.isPressed(PAD_BUTTON_TR)) {
+        if (_btn_trk.isPressed(GUN_BTN_TRIGGER)) {
             end();
             _settings->save();
             LOGV("Calibration done !!!\n");
-            ret = false;
-        } else if (_btn_trk.isPressed(PAD_BUTTON_TL)) {
+            ret = GunSettings::GunMode_Init;
+        } else if (_btn_trk.isPressed(GUN_BTN_A)) {
             GunSettings::profile_data_t* pd = _settings->get_profile();
             *pd = _pd_save;
             LOGV("Cancel & Retry !!!\n");

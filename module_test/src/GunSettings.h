@@ -145,7 +145,7 @@ class GunSettings : public GunDockCallback {
     * FUNCTIONS
     *****************************************************************************************
     */
-    GunSettings() { _gunmode = GunMode_Init; }
+    GunSettings() { _gunmode = GunMode_Run; }
 
     GunMode_e set_gun_mode(GunMode_e mode) {
         GunMode_e prev = _gunmode;
