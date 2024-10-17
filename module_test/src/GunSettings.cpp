@@ -30,15 +30,16 @@ GunSettings::pins_map_t GunSettings::_pins = {
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
 };
 
-GunSettings::params_map_t GunSettings::_params = {255, 150, 45, 30, 500, 3, 2500, 1, 0, 0xFF0000, 0x00FF00, 0x0000FF};
+GunSettings::params_map_t GunSettings::_params = {255, 150, 255, 45, 30, 500, 3, 2500, 1, 0, 0xFF0000, 0x00FF00, 0x0000FF};
 
 GunSettings::usb_map_t GunSettings::_usb = {
     "SERIALREADERR01",
     0x1998,
 };
 
-void GunSettings::setup() {
+bool GunSettings::setup() {
     EEPROM.begin(2048);
+    return load();
 }
 
 void GunSettings::save() {

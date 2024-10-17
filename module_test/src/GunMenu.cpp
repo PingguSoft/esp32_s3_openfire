@@ -3,11 +3,12 @@
 GunMenu::GunMenu() {
 }
 
-void GunMenu::init(std::vector<menu_item> *menu, std::vector<item_bind> *bind) {
+void GunMenu::init(std::vector<menu_item> *menu, std::map<uint16_t, item_meta*> *bind) {
     int                     min = 0;
+    int                     pos = 0;
     std::vector<menu_item> *child;
 
-    for (std::vector<menu_item>::iterator m = menu->begin(); m != menu->end(); m++) {
+    for (auto m = menu->begin(); m != menu->end(); m++) {   // std::vector<menu_item>::iterator
         int max = 0;
 
         switch (m->get_type()) {
@@ -25,18 +26,19 @@ void GunMenu::init(std::vector<menu_item> *menu, std::vector<item_bind> *bind) {
         }
 
         if (max != 0) {
-            void *data = NULL;
-            for (item_bind b : *bind) {
-                if (b.get_id() == m->get_id()) {
-                    data = b.get_data();
-                    break;
-                }
-            }
+            item_meta *meta;
 
-            if (!m->get_meta())
-                m->set_meta(new item_meta(min, max, data));
-            else
-                m->get_meta()->set_data(data);
+            // bind first
+            if (bind) {
+                auto it = bind->find(m->get_id());              // std::map<uint16_t, item_meta*>::iterator
+                meta = (it == bind->end()) ? NULL : it->second;
+            }
+            if (meta == NULL) {
+                meta = m->get_meta();
+                if (meta == NULL)
+                    meta = new item_meta(min, max);
+            }
+            m->set_meta(meta);
         }
 
         if (_callback) {
@@ -45,12 +47,14 @@ void GunMenu::init(std::vector<menu_item> *menu, std::vector<item_bind> *bind) {
 
         child = m->get_child();
         if (child) {
+            _parent_map.insert(std::make_pair(child, new pinfo_t(menu, pos)));
             init(child, bind);
         }
+        pos++;
     }
 }
 
-void GunMenu::setup(char *name, std::vector<menu_item> *menu, Callback *callback, std::vector<item_bind> *bind) {
+void GunMenu::setup(char *name, std::vector<menu_item> *menu, Callback *callback, std::map<uint16_t, item_meta*> *bind) {
     _name     = name;
     _cur_pos  = 0;
     _callback = callback;
@@ -61,7 +65,12 @@ void GunMenu::setup(char *name, std::vector<menu_item> *menu, Callback *callback
     _cur = menu;
 }
 
-bool GunMenu::add_data(type_t type, item_meta *meta, int val) {
+bool GunMenu::touch(type_t type, item_meta *meta, bool inc) {
+    int val = meta->get_step();
+
+    if (!inc)
+        val = -val;
+
     switch (type) {
         case TYPE_NORM_STR:
         case TYPE_CENTER_STR:
@@ -93,8 +102,9 @@ bool GunMenu::add_data(type_t type, item_meta *meta, int val) {
     return true;
 }
 
-void GunMenu::handle_menu(key_t key) {
-    bool updated;
+void GunMenu::handle_event(key_t key) {
+    bool is_updated;
+    bool is_back = false;
 
     switch (key) {
         case KEY_UP:
@@ -117,15 +127,15 @@ void GunMenu::handle_menu(key_t key) {
 
         case KEY_RIGHT: {
             menu_item item = _cur->at(_cur_pos);
-            updated        = add_data(_cur->at(_cur_pos).get_type(), item.get_meta(), 1);
-            if (_callback && updated)
+            is_updated        = touch(_cur->at(_cur_pos).get_type(), item.get_meta(), true);
+            if (_callback && is_updated)
                 _callback->onMenuItemChanged(_cur->at(_cur_pos).get_id(), &item);
         } break;
 
         case KEY_LEFT: {
             menu_item item = _cur->at(_cur_pos);
-            updated        = add_data(_cur->at(_cur_pos).get_type(), item.get_meta(), -1);
-            if (_callback && updated)
+            is_updated        = touch(_cur->at(_cur_pos).get_type(), item.get_meta(), false);
+            if (_callback && is_updated)
                 _callback->onMenuItemChanged(_cur->at(_cur_pos).get_id(), &item);
         } break;
 
@@ -135,47 +145,42 @@ void GunMenu::handle_menu(key_t key) {
             std::vector<menu_item> *child = item.get_child();
 
             if (child) {
-                _vec_last.push_back(_cur);
-                _vec_last_pos.push_back(_cur_pos);
                 _cur     = child;
                 _cur_pos = 0;
                 if (_callback)
                     _callback->onMenuItemClicked(id, &item);
             } else {
-                updated = add_data(_cur->at(_cur_pos).get_type(), item.get_meta(), 1);
-                if (_callback && updated)
-                    _callback->onMenuItemChanged(id, &item);
-
-                // no changeable item
-                if (!updated && _vec_last_pos.size() > 0) {
-                    _cur = _vec_last.back();
-                    _vec_last.pop_back();
-                    _cur_pos = _vec_last_pos.back();
-                    _vec_last_pos.pop_back();
+                is_updated = touch(_cur->at(_cur_pos).get_type(), item.get_meta(), true);
+                if (is_updated) {
+                    if (_callback)
+                        _callback->onMenuItemChanged(id, &item);
+                } else {
                     if (_callback)
                         _callback->onMenuItemClicked(id, &item);
+                    is_back = true;
                 }
             }
         } break;
 
         case KEY_BACK:
-            if (_vec_last_pos.size() > 0) {
-                _cur = _vec_last.back();
-                _vec_last.pop_back();
-                _cur_pos = _vec_last_pos.back();
-                _vec_last_pos.pop_back();
-            }
+            is_back = true;
             break;
+    }
+
+    if (is_back) {
+        auto it = _parent_map.find(_cur);
+        pinfo_t *p = (it == _parent_map.end()) ? NULL : it->second;
+        _cur = p->parent;
+        _cur_pos = p->pos;
     }
     _is_dirty = true;
 }
 
 char *GunMenu::title() {
-    if (_vec_last_pos.size() > 0) {
-        std::vector<menu_item> *last = _vec_last.back();
-        int8_t                  p    = _vec_last_pos.back();
-        return last->at(p).get_name();
-    } else {
+    if (_cur == _top)
         return _name;
-    }
+
+    auto it = _parent_map.find(_cur);
+    pinfo_t *p = (it == _parent_map.end()) ? NULL : it->second;
+    return p ? p->parent->at(p->pos).get_name() : _name;
 }

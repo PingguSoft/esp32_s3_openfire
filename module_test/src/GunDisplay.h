@@ -29,7 +29,6 @@ class GunDisplay {
     GunDisplay() {}
     bool     setup(TwoWire *wire);
     void     loop();
-    GunMenu *menu() { return &_menu; }
 
     void TopPanelUpdate(char *textPrefix, char *textInput);
     void ScreenModeChange(int8_t screenMode, bool isAnalog = false, bool isBT = false);
@@ -37,7 +36,7 @@ class GunDisplay {
     void DrawVisibleIR(int pointX[4], int pointY[4]);
     void drawAmmo(uint8_t ammo);
     void drawLife(uint8_t life);
-    void draw_menu();
+    void draw_menu(GunMenu *menu);
 
     enum ScreenMode_e {
         Screen_None = -1,
@@ -74,7 +73,6 @@ class GunDisplay {
 
    private:
     Timer<1, millis, GunDisplay *> *_timer;
-    GunMenu                         _menu;
 
     int8_t screenState = Screen_None;
 

@@ -122,6 +122,7 @@ class GunSettings : public GunDockCallback {
     typedef struct SettingsMap_s {
         uint8_t  rumbleIntensity;
         uint16_t rumbleInterval;
+        uint8_t  solenoidIntensity;         // added
         uint16_t solenoidNormalInterval;
         uint16_t solenoidFastInterval;
         uint16_t solenoidLongInterval;
@@ -146,7 +147,12 @@ class GunSettings : public GunDockCallback {
     */
     GunSettings() { _gunmode = GunMode_Init; }
 
-    void      set_gun_mode(GunMode_e mode) { _gunmode = mode; }
+    GunMode_e set_gun_mode(GunMode_e mode) {
+        GunMode_e prev = _gunmode;
+
+        _gunmode = mode;
+        return prev;
+    }
     GunMode_e get_gun_mode() { return _gunmode; }
 
     profile_data_t* get_profile(uint8_t idx) { return &_profiles.profileData[idx]; }
@@ -159,7 +165,7 @@ class GunSettings : public GunDockCallback {
     usb_map_t*      get_usb_config() { return &_usb; }
     pins_map_t*     get_pin_config() { return &_pins; }
 
-    void setup();
+    bool setup();
     void save();
     bool load();
 

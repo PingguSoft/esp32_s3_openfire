@@ -293,24 +293,23 @@ bool GunDisplay::setup(TwoWire *wire) {
     return false;
 }
 
-void GunDisplay::draw_menu() {
-    if (!display || !_menu.updated())
+void GunDisplay::draw_menu(GunMenu *menu) {
+    if (!display)
         return;
 
     int8_t idx;
     int8_t idx_sel;
-    std::vector<GunMenu::menu_item> *list = _menu.get_list();
+    std::vector<GunMenu::menu_item> *list = menu->get_list();
 
     display->clearDisplay();
     display->setTextColor(WHITE, BLACK);
     display->setCursor(0, 2);
     display->setTextSize(1);
-
-    draw_centered_text(_menu.title());
+    draw_centered_text(menu->title());
     display->drawFastHLine(0, 10, 128, WHITE);
 
     if (list->size() > 1) {
-        idx = _menu.get_pos() - 1;
+        idx = menu->get_pos() - 1;
         if (idx < 0) {
             idx = idx + list->size();
         }
@@ -321,14 +320,14 @@ void GunDisplay::draw_menu() {
     }
 
     char *buf = new char[255];
-    for (int i = 0; i < min(4, (int)list->size()); i++) {
+    for (int i = 0; i < min(3, (int)list->size()); i++) {
         if (i == idx_sel) {
-            display->fillRect(0, 20 + i * 11, display->width() - 10, 8, WHITE);
+            display->fillRect(0, 20 + i * 14, display->width() - 10, 8, WHITE);
             display->setTextColor(BLACK, WHITE);
         } else {
             display->setTextColor(WHITE, BLACK);
         }
-        display->setCursor(0, 20 + i * 11);
+        display->setCursor(0, 20 + i * 14);
         list->at(idx).format(&buf, 255);
         if (list->at(idx).get_type() == GunMenu::TYPE_CENTER_STR)
             draw_centered_text(buf);

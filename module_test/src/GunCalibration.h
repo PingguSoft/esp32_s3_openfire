@@ -15,11 +15,11 @@ class GunCalibration {
     void setup(GunSettings *settings, GunHID *hid, GunCamera *cam);
     void begin();
     void end();
-    bool loop(uint16_t buttons);
+    bool loop(uint16_t buttons, GunSettings::GunMode_e mode);
 
    private:
     void        mouse_ani_begin(int8_t stage);
-    bool        is_mouse_move() { return (_ani_info.ctr > 0); }
+    bool        is_mouse_animating() { return (_ani_info.ctr > 0); }
     static bool timer_mouse_ani_task(GunCalibration *p);
 
     enum CaliStage_e { Cali_Init = 0, Cali_Top, Cali_Bottom, Cali_Left, Cali_Right, Cali_Center, Cali_Verify };
@@ -39,7 +39,9 @@ class GunCalibration {
     int8_t                              _stage;
     struct _ani                         _ani_info;
     ButtonTracker                       _btn_trk;
+    GunSettings::profile_data_t        *_pd;
     GunSettings::profile_data_t         _pd_save;
+    GunSettings::GunMode_e              _prv_mode;
 };
 
 #endif
