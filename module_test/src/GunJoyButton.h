@@ -66,6 +66,14 @@
 #define PAD_HAT_MASK_X_M   0x04
 #define PAD_HAT_MASK_Y_M   0x08
 
+#define GUN_BTN_TRIGGER  PAD_BUTTON_TR
+#define GUN_BTN_A        PAD_BUTTON_TL
+#define GUN_BTN_B        PAD_BUTTON_Y
+#define GUN_BTN_C        PAD_BUTTON_A
+#define GUN_BTN_START    PAD_BUTTON_START
+#define GUN_BTN_SELECT   PAD_BUTTON_SELECT
+#define GUN_BTN_PEDAL    PAD_BUTTON_X
+
 /*
 *****************************************************************************************
 * GunJoyButton
@@ -91,16 +99,17 @@ class GunJoyButton {
     } report_t;
 
     GunJoyButton() {
+        _state2 = STATE_NONE;
         memset(&_report, 0, sizeof(_report));
         set_auto_trigger(300, 150);
     }
 
-    void set_auto_trigger(uint16_t auto_trg_delay, uint16_t auto_trg_rpt_delay) {
-        _auto_trg_delay     = auto_trg_delay;
-        _auto_trg_rpt_delay = auto_trg_rpt_delay;
+    void set_auto_trigger(uint16_t strt_delay, uint16_t rpt_delay) {
+        _auto_strt_delay = strt_delay;
+        _auto_rpt_delay  = rpt_delay;
     }
     void      add_button(uint8_t gpio, uint8_t mode, uint16_t mouse_evt, uint32_t pad_evt);
-    void      setup(void (*cb)(report_t *report) = NULL, uint16_t auto_trg_delay = 0, uint16_t auto_trg_rpt_delay = 0);
+    void      setup(void (*cb)(report_t *report) = NULL, uint16_t strt_delay=0, uint16_t rpt_delay=0);
     bool      loop();
     report_t *get() { return &_report; }
     void      get(report_t *report) { *report = _report; }
@@ -123,14 +132,18 @@ class GunJoyButton {
     static bool          timer_sw_check_task(pin_sw_info_t *state);
     static bool          timer_sw_pulse_task(pin_sw_info_t *state);
     static bool          timer_adc_check_task(pin_sw_info_t *state);
+    static bool          timer_adc_pulse_task(pin_sw_info_t *state);
+    static bool          timer_adc_btn_emul_task(pin_sw_info_t *state);
     const static uint8_t _tbl_hat[];
+    uint8_t              _state2;
 
-    Timer<16, millis, pin_sw_info_t *> *_timer;
-    uint16_t                            _auto_trg_delay;
-    uint16_t                            _auto_trg_rpt_delay;
+    Timer<20, millis, pin_sw_info_t *> *_timer;
+    uint16_t                            _auto_strt_delay;
+    uint16_t                            _auto_rpt_delay;
     std::list<pin_sw_info_t *>          _list_sw;
     report_t                            _report;
     uint8_t                             _hat_mask;
+    uint8_t                             _hat_mask_rsv;
     void (*_cb)(report_t *report);
 };
 
@@ -163,7 +176,7 @@ class ButtonTracker {
             return false;
 
         int toggled = _toggled & (~_shift);  // clear shift mask
-        return bool((toggled & check) && (_btn & check));
+        return bool((toggled & check) && (_btn & check) == check);
     }
 
     bool isReleased(int check) {
@@ -173,7 +186,7 @@ class ButtonTracker {
             return false;
 
         int toggled = _toggled & (~_shift);  // clear shift mask
-        return bool((toggled & check) && !(_btn & check));
+        return bool((toggled & check) && (_btn & check) == 0);
     }
 
     bool isToggled(int check) {
@@ -183,7 +196,7 @@ class ButtonTracker {
             return false;
 
         int toggled = _toggled & (~_shift);  // clear shift mask
-        return bool(toggled & check);
+        return bool((toggled & check) == check);
     }
 
     bool isChanged() { return bool(_toggled); }
