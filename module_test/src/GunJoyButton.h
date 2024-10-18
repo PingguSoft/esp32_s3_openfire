@@ -61,18 +61,18 @@
 #define PAD_HAT_LEFT       7
 #define PAD_HAT_UP_LEFT    8
 
-#define PAD_HAT_MASK_X_P   0x01
-#define PAD_HAT_MASK_Y_P   0x02
-#define PAD_HAT_MASK_X_M   0x04
-#define PAD_HAT_MASK_Y_M   0x08
+#define PAD_HAT_MASK_X_P 0x01
+#define PAD_HAT_MASK_Y_P 0x02
+#define PAD_HAT_MASK_X_M 0x04
+#define PAD_HAT_MASK_Y_M 0x08
 
-#define GUN_BTN_TRIGGER  PAD_BUTTON_TR
-#define GUN_BTN_A        PAD_BUTTON_TL
-#define GUN_BTN_B        PAD_BUTTON_Y
-#define GUN_BTN_C        PAD_BUTTON_A
-#define GUN_BTN_START    PAD_BUTTON_START
-#define GUN_BTN_SELECT   PAD_BUTTON_SELECT
-#define GUN_BTN_PEDAL    PAD_BUTTON_X
+#define GUN_BTN_TRIGGER PAD_BUTTON_TR
+#define GUN_BTN_A       PAD_BUTTON_TL
+#define GUN_BTN_B       PAD_BUTTON_Y
+#define GUN_BTN_C       PAD_BUTTON_A
+#define GUN_BTN_START   PAD_BUTTON_START
+#define GUN_BTN_SELECT  PAD_BUTTON_SELECT
+#define GUN_BTN_PEDAL   PAD_BUTTON_X
 
 /*
 *****************************************************************************************
@@ -98,53 +98,50 @@ class GunJoyButton {
         }
     } report_t;
 
-    GunJoyButton() {
-        _state2 = STATE_NONE;
-        memset(&_report, 0, sizeof(_report));
-        set_auto_trigger(300, 150);
-    }
-
-    void set_auto_trigger(uint16_t strt_delay, uint16_t rpt_delay) {
-        _auto_strt_delay = strt_delay;
-        _auto_rpt_delay  = rpt_delay;
-    }
+    GunJoyButton();
     void      add_button(uint8_t gpio, uint8_t mode, uint16_t mouse_evt, uint32_t pad_evt);
-    void      setup(void (*cb)(report_t *report) = NULL, uint16_t strt_delay=0, uint16_t rpt_delay=0);
+    void      setup(void (*cb)(report_t *report) = NULL, uint16_t strt_delay = 0, uint16_t rpt_delay = 0);
     bool      loop();
     report_t *get() { return &_report; }
     void      get(report_t *report) { *report = _report; }
     uint8_t   get_hat_mask() { return _hat_mask; }
+    void      set_auto_trigger(uint16_t strt_delay, uint16_t rpt_delay) {
+        _auto_strt_delay = strt_delay;
+        _auto_rpt_delay  = rpt_delay;
+    }
 
    private:
     enum { STATE_NONE = 0, STATE_DEBOUNCE, STATE_AUTO_TRG_DELAY, STATE_AUTO_TRG_RPT_DELAY, STATE_WAIT_RELEASE };
 
     typedef struct pin_sw_info {
-        uint8_t  _pin;
-        uint8_t  _mode;
-        int8_t   _val;
-        uint8_t  _state;
-        uint16_t _mouse_evt;
-        uint32_t _pad_evt;
-        pin_sw_info(uint8_t pin, uint8_t mode, uint16_t mouse_evt, uint32_t pad_evt)
-            : _pin(pin), _mode(mode), _mouse_evt(mouse_evt), _pad_evt(pad_evt) {}
+        GunJoyButton *_parent;
+        uint8_t       _pin;
+        uint8_t       _mode;
+        int8_t        _val;
+        uint8_t       _state;
+        uint16_t      _mouse_evt;
+        uint32_t      _pad_evt;
+        pin_sw_info(GunJoyButton *parent, uint8_t pin, uint8_t mode, uint16_t mouse_evt, uint32_t pad_evt)
+            : _parent(parent), _pin(pin), _mode(mode), _mouse_evt(mouse_evt), _pad_evt(pad_evt) {}
     } pin_sw_info_t;
 
-    static bool          timer_sw_check_task(pin_sw_info_t *state);
-    static bool          timer_sw_pulse_task(pin_sw_info_t *state);
-    static bool          timer_adc_check_task(pin_sw_info_t *state);
-    static bool          timer_adc_pulse_task(pin_sw_info_t *state);
-    static bool          timer_adc_btn_emul_task(pin_sw_info_t *state);
-    const static uint8_t _tbl_hat[];
-    uint8_t              _state2;
-
-    Timer<20, millis, pin_sw_info_t *> *_timer;
-    uint16_t                            _auto_strt_delay;
-    uint16_t                            _auto_rpt_delay;
-    std::list<pin_sw_info_t *>          _list_sw;
-    report_t                            _report;
-    uint8_t                             _hat_mask;
-    uint8_t                             _hat_mask_rsv;
+    uint8_t              _emul_state;
+    Timer<16, millis, void *> *_timer;
+    uint16_t                   _auto_strt_delay;
+    uint16_t                   _auto_rpt_delay;
+    std::list<pin_sw_info_t *> _list_sw;
+    report_t                   _report;
+    uint8_t                    _hat_mask;
+    uint8_t                    _hat_mask_rsv;
     void (*_cb)(report_t *report);
+
+    static const uint8_t _tbl_hat[];
+
+    static bool timer_sw_check_task(void *param);
+    static bool timer_sw_pulse_task(void *param);
+    static bool timer_adc_check_task(void *param);
+    static bool timer_adc_pulse_task(void *param);
+    static bool timer_adc_btn_emul_task(void *param);
 };
 
 class ButtonTracker {

@@ -160,3 +160,20 @@ GunSettings::GunMode_e GunCalibration::loop(uint16_t buttons, GunSettings::GunMo
     _timer->tick();
     return ret;
 }
+
+/*
+*****************************************************************************************
+* draw
+*****************************************************************************************
+*/
+void GunCalibration::draw(GunDisplay *display) {
+    display->drv()->clearDisplay();
+    display->drv()->setTextColor(WHITE, BLACK);
+    display->drv()->setCursor(0, 2);
+    display->drv()->setTextSize(1);
+    // display->draw_centered_text(title());
+    display->drv()->drawFastHLine(0, 10, 128, WHITE);
+
+
+    display->drv()->display();
+}

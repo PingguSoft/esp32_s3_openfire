@@ -6,15 +6,14 @@
 * INCLUDE FILES
 *****************************************************************************************
 */
-#include <vector>
-
 #include <Wire.h>
 #include <arduino-timer.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 
-#include "GunMenu.h"
+#include <vector>
 #include "config.h"
 #include "debug.h"
-
 
 /*
 *****************************************************************************************
@@ -24,44 +23,25 @@
 #define SCREEN_WIDTH  128
 #define SCREEN_HEIGHT 64
 
+#define unpack_uint16(x) ((x >> 0) & 0xff), ((x >> 8) & 0xff)
+#define bitmap_width(x)  (x[0] | ((uint16_t)x[1] << 8))
+#define bitmap_height(x) (x[2] | ((uint16_t)x[3] << 8))
+
 class GunDisplay {
    public:
     GunDisplay() {}
-    bool     setup(TwoWire *wire);
-    void     loop();
+    bool setup(TwoWire *wire);
 
-    void TopPanelUpdate(char *textPrefix, char *textInput);
-    void ScreenModeChange(int8_t screenMode, bool isAnalog = false, bool isBT = false);
-    void IdleOps();
-    void DrawVisibleIR(int pointX[4], int pointY[4]);
-    void drawAmmo(uint8_t ammo);
-    void drawLife(uint8_t life);
-    void draw_menu(GunMenu *menu);
+    void draw_ir(int pointX[4], int pointY[4]);
+    void draw_ammo(uint8_t ammo);
+    void draw_life(uint8_t life);
 
-    enum ScreenMode_e {
-        Screen_None = -1,
-        Screen_Init = 0,
-        Screen_Normal,
-        Screen_Pause,
-        Screen_Profile,
-        Screen_Saving,
-        Screen_SaveSuccess,
-        Screen_SaveError,
-        Screen_Calibrating,
-        Screen_IRTest,
-        Screen_Docked,
-        Screen_Mamehook_Single,
-        Screen_Mamehook_Dual
-    };
+    void draw_centered_text(char *text, uint8_t flag = 0);
+    void tokenize(char *line, char *token, std::vector<char *> &tokens);
 
-    enum ScreenPauseList_e {
-        ScreenPause_Calibrate = 0,
-        ScreenPause_ProfileSelect,
-        ScreenPause_Save,
-        ScreenPause_Rumble,
-        ScreenPause_Solenoid,
-        ScreenPause_EscapeKey
-    };
+    void draw_bitmap(int16_t x, int16_t y, const uint8_t bitmap[], uint16_t color);
+
+    Adafruit_SSD1306 *drv()  { return _disp_drv; }
 
     enum ScreenSerialInit_e { ScreenSerial_None = 0, ScreenSerial_Life, ScreenSerial_Ammo, ScreenSerial_Both };
 
@@ -72,10 +52,7 @@ class GunDisplay {
     uint8_t serialDisplayType = 0;
 
    private:
-    Timer<1, millis, GunDisplay *> *_timer;
-
-    int8_t screenState = Screen_None;
-
+    Adafruit_SSD1306 *_disp_drv;
     bool ammoEmpty = false;
     bool lifeEmpty = false;
 
@@ -86,10 +63,5 @@ class GunDisplay {
     unsigned long ammoTimestamp = 0;
     unsigned long lifeTimestamp = 0;
     unsigned long idleTimeStamp = 0;
-
-    void draw_centered_text(char *text, uint8_t flag = 0);
-    void drawBitmap(int16_t x, int16_t y, const uint8_t bitmap[], uint16_t color);
-    void tokenize(char *line, char *token, std::vector<char *> &tokens);
 };
-
 #endif

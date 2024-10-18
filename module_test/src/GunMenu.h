@@ -12,6 +12,7 @@
 #include <map>
 #include <vector>
 
+#include "GunDisplay.h"
 #include "config.h"
 #include "debug.h"
 
@@ -25,6 +26,9 @@ class GunMenu {
     typedef enum { TYPE_NORM_STR = 0, TYPE_CENTER_STR, TYPE_BOOL, TYPE_DIGIT_8, TYPE_DIGIT_16 } type_t;
     typedef enum { KEY_NONE = 0, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_ENTER, KEY_BACK } key_t;
 
+    //
+    // item_meta class
+    //
     class item_meta {
        public:
         item_meta(int min = 0, int max = 0, uint8_t digit = 1, int8_t step = 1) {
@@ -57,16 +61,25 @@ class GunMenu {
         int8_t  step;
     };
 
+    //
+    // menu_item class
+    //
     class menu_item {
        public:
-        menu_item(uint16_t id, char *name, type_t type, std::vector<menu_item> *child = NULL, item_meta *meta = NULL) {
+        menu_item(uint16_t id, String *name, type_t type, std::vector<menu_item> *child=NULL, item_meta *meta=NULL) {
+            set(id, name ? (char*)name->c_str() : NULL, type, child, meta);
+        }
+
+        menu_item(uint16_t id, String name, type_t type, std::vector<menu_item> *child=NULL, item_meta *meta=NULL) {
+            set(id, (char*)name.c_str(), type, child, meta);
+        }
+        void                    set(uint16_t id, char *name, type_t type, std::vector<menu_item> *child, item_meta *meta) {
             this->id    = id;
             this->name  = name;
             this->type  = type;
             this->child = child;
             this->meta  = meta;
         }
-
         void                    set_name(char *name) { this->name = name; }
         void                    set_meta(item_meta *meta) { this->meta = meta; }
         item_meta              *get_meta() { return this->meta; }
@@ -120,40 +133,39 @@ class GunMenu {
         std::vector<menu_item> *child;
     };
 
-    class menu_list {
-       private:
-        std::vector<menu_item> *parent;
-        std::vector<menu_item> *list;
-    };
-
+    //
+    // Callback class
+    //
     class Callback {
        public:
-        virtual void onMenuItemInit(uint16_t id, GunMenu::menu_item *item) = 0;
+        virtual void onMenuItemInit(uint16_t id, GunMenu::menu_item *item) {}
         virtual void onMenuItemClicked(uint16_t id, GunMenu::menu_item *item) {}
         virtual void onMenuItemFocused(uint16_t id, GunMenu::menu_item *item) {}
         virtual void onMenuItemLost(uint16_t id, GunMenu::menu_item *item) {}
         virtual void onMenuItemChanged(uint16_t id, GunMenu::menu_item *item) {}
     };
 
+    //
+    // public functions
+    //
     GunMenu();
-    void  setup(char *name, std::vector<menu_item> *menu, Callback *callback = NULL,
+    void  setup(String name, std::vector<menu_item> *menu, Callback *callback = NULL,
                 std::map<uint16_t, item_meta *> *bind = NULL);
     void  handle_event(key_t key);
     char *title();
+    bool  updated();
+    std::vector<menu_item> *jump(std::vector<menu_item> *menu, uint16_t id, int8_t *pos);
+    void  draw(GunDisplay *display);
 
     void                    update() { _is_dirty = true; }
     std::vector<menu_item> *get_list() { return _cur; }
     int8_t                  get_pos() { return _cur_pos; }
     void                    set_pos(int8_t pos) { _cur_pos = pos % _cur->size(); }
-    bool                    updated() {
-        bool ret  = _is_dirty;
-        _is_dirty = false;
-        return ret;
-    }
 
    private:
     typedef struct pinfo {
         std::vector<menu_item> *parent;
+        menu_item              *item;
         int8_t                  pos;
 
         pinfo(std::vector<menu_item> *parent, int8_t pos) {

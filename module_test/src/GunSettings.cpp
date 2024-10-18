@@ -6,36 +6,39 @@
 #include "GunJoyButton.h"
 #include "debug.h"
 
-
+// clang-format off
 // 4 byte header ID
 const GunSettings::header_id_t GunSettings::_header_id = {'O', 'F', '0', '1'};
 
 GunSettings::profiles_t GunSettings::_profiles = {
     MAX_PROFILE_CNT,
     0,
-    {{0, 0, 0, 0, 500 << 2, 1420 << 2, 512 << 2, 384 << 2, 0, GunSettings::RunMode_Average, PAD_BUTTON_A, true,
-      0xFF0000, "Profile A"},
-     {0, 0, 0, 0, 500 << 2, 1420 << 2, 512 << 2, 384 << 2, 0, GunSettings::RunMode_Average, PAD_BUTTON_B, true,
-      0x00FF00, "Profile B"},
-     {0, 0, 0, 0, 500 << 2, 1420 << 2, 512 << 2, 384 << 2, 0, GunSettings::RunMode_Average, PAD_BUTTON_START, true,
-      0x0000FF, "Profile Start"},
-     {0, 0, 0, 0, 500 << 2, 1420 << 2, 512 << 2, 384 << 2, 0, GunSettings::RunMode_Average, PAD_BUTTON_SELECT, true,
-      0xFF00FF, "Profile Select"}},
+    {
+        {0, 0, 0, 0, 500 << 2, 1420 << 2, 512 << 2, 384 << 2, 0, GunSettings::RunMode_Average, PAD_BUTTON_A, true, 0xFF0000, "Profile A"},
+        {0, 0, 0, 0, 500 << 2, 1420 << 2, 512 << 2, 384 << 2, 0, GunSettings::RunMode_Average, PAD_BUTTON_B, true, 0x00FF00, "Profile B"},
+        {0, 0, 0, 0, 500 << 2, 1420 << 2, 512 << 2, 384 << 2, 0, GunSettings::RunMode_Average, PAD_BUTTON_START, true, 0x0000FF, "Profile Start"},
+        {0, 0, 0, 0, 500 << 2, 1420 << 2, 512 << 2, 384 << 2, 0, GunSettings::RunMode_Average, PAD_BUTTON_SELECT, true, 0xFF00FF, "Profile Select"}
+    },
 };
 
-GunSettings::feature_map_t GunSettings::_features = {false, true, true, false, false, false, true, false, false};
+GunSettings::feature_map_t GunSettings::_features = {
+    false, true, true, false, false, false, true, false, false
+};
 
 GunSettings::pins_map_t GunSettings::_pins = {
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
 };
 
-GunSettings::params_map_t GunSettings::_params = {255, 150, 255, 45, 30, 500, 3, 2500, 1, 0, 0xFF0000, 0x00FF00, 0x0000FF};
+GunSettings::params_map_t GunSettings::_params = {
+    255, 150, 255, 45, 30, 500, 3, 2500, 1, 0, 0xFF0000, 0x00FF00, 0x0000FF
+};
 
 GunSettings::usb_map_t GunSettings::_usb = {
     "SERIALREADERR01",
     0x1998,
 };
+// clang-format on
 
 bool GunSettings::setup() {
     EEPROM.begin(2048);
@@ -52,7 +55,8 @@ int hex2string(uint8_t *in, int inlen, char *out) {
     int   i   = 0;
     char *pos = out;
 
-    for (i = 0; i < inlen; i++) pos += sprintf(pos, "%02X ", in[i]);
+    for (i = 0; i < inlen; i++)
+        pos += sprintf(pos, "%02X ", in[i]);
 
     return pos - out + 1;
 }

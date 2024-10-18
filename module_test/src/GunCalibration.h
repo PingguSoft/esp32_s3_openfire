@@ -8,6 +8,7 @@
 #include "GunHID.h"
 #include "GunJoyButton.h"
 #include "GunSettings.h"
+#include "GunDisplay.h"
 
 class GunCalibration {
    public:
@@ -16,6 +17,7 @@ class GunCalibration {
     void begin(GunSettings::GunMode_e mode=GunSettings::GunMode_Init);
     GunSettings::GunMode_e end();
     GunSettings::GunMode_e loop(uint16_t buttons, GunSettings::GunMode_e mode);
+    void  draw(GunDisplay *display);
 
    private:
     void        mouse_ani_begin(int8_t stage);
