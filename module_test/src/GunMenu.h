@@ -150,8 +150,8 @@ class GunMenu {
     void  handle_event(key_t key);
     std::string title();
     bool  updated();
-    std::vector<menu_item> *jump(std::vector<menu_item> *menu, uint16_t id, int8_t *pos);
     void  draw(GunDisplay *display);
+    std::vector<menu_item> *jump(uint16_t id);
 
     void                    update() { _is_dirty = true; }
     std::vector<menu_item> *get_list() { return _cur; }
@@ -171,6 +171,7 @@ class GunMenu {
 
     void init(std::vector<menu_item> *menu, std::map<uint16_t, item_meta *> *bind);
     bool touch(type_t type, item_meta *meta, bool inc);
+    std::vector<menu_item> *jump(std::vector<menu_item> *menu, uint16_t id, int8_t *pos);
 
     std::string                                  _name;
     std::vector<menu_item>                       *_top;

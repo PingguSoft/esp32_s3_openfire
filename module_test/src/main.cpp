@@ -185,8 +185,8 @@ int debug_printf(const char *format, ...) {
 //
 class GunMenuHandler {
    public:
-    GunMenuHandler(GunSettings *settings)
-        : _settings(settings), _enable(true) {}
+    GunMenuHandler()
+        : _enable(true) {}
 
     void onMenuItemInit(uint16_t id, GunMenu::menu_item *item) {
         switch (id) {
@@ -223,7 +223,7 @@ class GunMenuHandler {
         }
     }
 
-    void setup(GunMenu::Callback *callback) {
+    void setup(GunSettings *settings, GunDisplay *disp, GunMenu::Callback *callback) {
         // clang-format off
         std::map<uint16_t, GunMenu::item_meta *> bind_tbl = {
             {IDM_IR,               new GunMenu::item_meta(&_settings->get_profile()->irSensitivity, 0, 3)},
@@ -240,9 +240,11 @@ class GunMenuHandler {
         };
         // clang-format on
         _menu.setup("SETTINGS", &_menu_top, callback, &bind_tbl);
+        _settings = settings;
+        _disp = disp;
     }
 
-    void loop(GunDisplay *disp, uint32_t btns) {
+    void loop(uint32_t btns) {
         if (!_enable)
             return;
 
@@ -265,7 +267,13 @@ class GunMenuHandler {
         _btn_trk.end();
 
         if (_menu.updated())
-            _menu.draw(disp);
+            _menu.draw(_disp);
+    }
+
+    void jump(uint16_t id) {
+        _menu.jump(id);
+        if (_menu.updated())
+            _menu.draw(_disp);
     }
 
     void enable(bool en) { _enable = en; }
@@ -273,6 +281,7 @@ class GunMenuHandler {
    private:
     bool          _enable;
     GunMenu       _menu;
+    GunDisplay   *_disp;
     GunSettings  *_settings;
     ButtonTracker _btn_trk;
 };
@@ -291,7 +300,7 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback, public Gun
         _gunSettings = new GunSettings();
         _pixels      = new Adafruit_NeoPixel(1, PIN_LED_STRIP, NEO_GRB + NEO_KHZ800);
         _gunDisp     = new GunDisplay();
-        _gunMenu     = new GunMenuHandler(_gunSettings);
+        _gunMenu     = new GunMenuHandler();
     }
 
     void onMenuItemInit(uint16_t id, GunMenu::menu_item *item) {
@@ -416,8 +425,10 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback, public Gun
         _gunSettings->set_gun_mode(mode);
         update_auto_fire(mode);
         update_force_feedback();
-        if (mode == GunSettings::GunMode_Calibration)
+        if (mode == GunSettings::GunMode_Calibration) {
+            _gunMenu->jump(IDM_CALIBRATION_MSG);
             _gunCali->begin(last);
+        }
         LOGV("mode %d->%d\n", last, mode);
 
         return last;
@@ -439,7 +450,7 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback, public Gun
         pinMode(PIN_PERI_SCL, INPUT_PULLUP);
         Wire1.begin(PIN_PERI_SDA, PIN_PERI_SCL, 400000);
         _gunDisp->setup(&Wire1);
-        _gunMenu->setup(this);
+        _gunMenu->setup(_gunSettings, _gunDisp, this);
 
         // joypad setting
         for (int i = 0; i < ARRAY_SIZE(_tbl_sw_pins); i++) {
@@ -590,7 +601,7 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback, public Gun
                 break;
 
             case GunSettings::GunMode_Pause:
-                _gunMenu->loop(_gunDisp, btns);
+                _gunMenu->loop(btns);
                 if (_btn_trk.isPressed(GUN_BTN_START | GUN_BTN_PEDAL)) {
                     update_gun_mode(GunSettings::GunMode_Run);
                 }

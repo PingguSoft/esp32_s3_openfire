@@ -214,6 +214,17 @@ std::vector<GunMenu::menu_item> *GunMenu::jump(std::vector<menu_item> *menu, uin
     return NULL;
 }
 
+std::vector<GunMenu::menu_item> *GunMenu::jump(uint16_t id) {
+    int8_t pos;
+    std::vector<GunMenu::menu_item> *sub;
+
+    sub = jump(_top, id, &pos);
+    if (sub) {
+        _is_dirty = true;
+    }
+    return sub;
+}
+
 /*
 *****************************************************************************************
 * draw
