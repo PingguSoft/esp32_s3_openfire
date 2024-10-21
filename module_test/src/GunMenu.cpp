@@ -53,8 +53,8 @@ void GunMenu::init(std::vector<menu_item> *menu, std::map<uint16_t, item_meta*> 
     }
 }
 
-void GunMenu::setup(String name, std::vector<menu_item> *menu, Callback *callback, std::map<uint16_t, item_meta*> *bind) {
-    _name     = (char*)name.c_str();
+void GunMenu::setup(std::string name, std::vector<menu_item> *menu, Callback *callback, std::map<uint16_t, item_meta*> *bind) {
+    _name     = name;
     _cur_pos  = 0;
     _callback = callback;
     _is_dirty = true;
@@ -178,7 +178,7 @@ void GunMenu::handle_event(key_t key) {
     _is_dirty = true;
 }
 
-char *GunMenu::title() {
+std::string GunMenu::title() {
     if (_cur == _top)
         return _name;
 
@@ -238,8 +238,9 @@ void GunMenu::draw(GunDisplay *display) {
     display->drv()->setTextColor(WHITE, BLACK);
     display->drv()->setCursor(0, 2);
     display->drv()->setTextSize(1);
-    display->draw_centered_text(title());
-    display->drv()->drawFastHLine(0, 10, 128, WHITE);
+    display->draw_centered_text((char*)title().c_str());
+    display->drv()->drawFastHLine(0, 12, 128, WHITE);
+    display->drv()->drawFastHLine(0, 14, 128, WHITE);
 
     if (list->size() > 1) {
         idx = get_pos() - 1;
@@ -255,7 +256,7 @@ void GunMenu::draw(GunDisplay *display) {
     char *buf = new char[255];
     for (int i = 0; i < min(3, (int)list->size()); i++) {
         if (i == idx_sel) {
-            display->drv()->fillRect(0, 20 + i * 14, display->drv()->width() - 10, 8, WHITE);
+            display->drv()->fillRect(0, 17 + i * 14, display->drv()->width() - 10, 12, WHITE);
             display->drv()->setTextColor(BLACK, WHITE);
         } else {
             display->drv()->setTextColor(WHITE, BLACK);

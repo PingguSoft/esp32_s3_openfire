@@ -88,10 +88,10 @@ static const uint16_t IDM_EXIT             = 0x0A00;
 */
 // clang-format off
 static std::vector<GunMenu::menu_item> _menu_sub_profile = {
-    {IDM_PROFILE_1, NULL, GunMenu::TYPE_NORM_STR },
-    {IDM_PROFILE_2, NULL, GunMenu::TYPE_NORM_STR },
-    {IDM_PROFILE_3, NULL, GunMenu::TYPE_NORM_STR },
-    {IDM_PROFILE_4, NULL, GunMenu::TYPE_NORM_STR }
+    {IDM_PROFILE_1, "", GunMenu::TYPE_NORM_STR },
+    {IDM_PROFILE_2, "", GunMenu::TYPE_NORM_STR },
+    {IDM_PROFILE_3, "", GunMenu::TYPE_NORM_STR },
+    {IDM_PROFILE_4, "", GunMenu::TYPE_NORM_STR }
 };
 
 static std::vector<GunMenu::menu_item> _menu_sub_runmode = {
@@ -121,16 +121,16 @@ static std::vector<GunMenu::menu_item> _menu_sub_cal = {
 };
 
 static std::vector<GunMenu::menu_item> _menu_top = {
-    {IDM_PROFILE, "Profile", GunMenu::TYPE_NORM_STR, &_menu_sub_profile },
-    {IDM_RUNMODE, "Run Mode", GunMenu::TYPE_NORM_STR, &_menu_sub_runmode },
-    {IDM_IR, "IR Sensitivity", GunMenu::TYPE_DIGIT_8 },
-    {IDM_OFFSCR_BTN, "OffScrn button", GunMenu::TYPE_BOOL },
-    {IDM_RUMBLE, "Rumble",GunMenu::TYPE_NORM_STR, &_menu_sub_rumble },
-    {IDM_SOLENOID, "Solenoid", GunMenu::TYPE_NORM_STR, &_menu_sub_solenoid },
-    {IDM_AUTOFIRE, "Auto Fire", GunMenu::TYPE_NORM_STR, &_menu_sub_autofire },
-    {IDM_CALIBRATION, "Calibration", GunMenu::TYPE_NORM_STR, &_menu_sub_cal },
-    {IDM_SAVE, "Save", GunMenu::TYPE_NORM_STR },
-    {IDM_EXIT, "Exit", GunMenu::TYPE_NORM_STR },
+    {IDM_PROFILE, "PROFILE", GunMenu::TYPE_NORM_STR, &_menu_sub_profile },
+    {IDM_RUNMODE, "RUN MODE", GunMenu::TYPE_NORM_STR, &_menu_sub_runmode },
+    {IDM_IR, "IR SENSITIVITY", GunMenu::TYPE_DIGIT_8 },
+    {IDM_OFFSCR_BTN, "OFFSCRN BUTTON", GunMenu::TYPE_BOOL },
+    {IDM_RUMBLE, "RUMBLE",GunMenu::TYPE_NORM_STR, &_menu_sub_rumble },
+    {IDM_SOLENOID, "SOLENOID", GunMenu::TYPE_NORM_STR, &_menu_sub_solenoid },
+    {IDM_AUTOFIRE, "AUTO FIRE", GunMenu::TYPE_NORM_STR, &_menu_sub_autofire },
+    {IDM_CALIBRATION, "CALIBRATION", GunMenu::TYPE_NORM_STR, &_menu_sub_cal },
+    {IDM_SAVE, "SAVE", GunMenu::TYPE_NORM_STR },
+    {IDM_EXIT, "EXIT", GunMenu::TYPE_NORM_STR },
     {0x0B00, "", GunMenu::TYPE_NORM_STR }
 };
 // clang-format on
@@ -179,6 +179,10 @@ int debug_printf(const char *format, ...) {
     return ret;
 }
 
+
+//
+// GunMenuHandler
+//
 class GunMenuHandler {
    public:
     GunMenuHandler(GunSettings *settings)
@@ -273,6 +277,10 @@ class GunMenuHandler {
     ButtonTracker _btn_trk;
 };
 
+
+//
+// GunMain
+//
 class GunMain : public GunDockCallback, public GunMameHookerCallback, public GunMenu::Callback {
    public:
     GunMain() {
@@ -603,8 +611,8 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback, public Gun
         update = _gunJoy->loop();
         report = _gunJoy->get();
         if (update) {
-            LOGV("%5d, %5d, %2d %4x %2x\n", report->x, report->y, report->hat, report->pad_buttons,
-                 report->mouse_buttons);
+            // LOGV("%5d, %5d, %2d %4x %2x\n", report->x, report->y, report->hat, report->pad_buttons,
+            //      report->mouse_buttons);
         }
 
         handle_event(report);

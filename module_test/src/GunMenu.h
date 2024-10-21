@@ -66,26 +66,22 @@ class GunMenu {
     //
     class menu_item {
        public:
-        menu_item(uint16_t id, String *name, type_t type, std::vector<menu_item> *child=NULL, item_meta *meta=NULL) {
-            set(id, name ? (char*)name->c_str() : NULL, type, child, meta);
+        menu_item(uint16_t id, std::string name, type_t type, std::vector<menu_item> *child=NULL, item_meta *meta=NULL) {
+            set(id, name, type, child, meta);
         }
-
-        menu_item(uint16_t id, String name, type_t type, std::vector<menu_item> *child=NULL, item_meta *meta=NULL) {
-            set(id, (char*)name.c_str(), type, child, meta);
-        }
-        void                    set(uint16_t id, char *name, type_t type, std::vector<menu_item> *child, item_meta *meta) {
+        void                    set(uint16_t id, std::string name, type_t type, std::vector<menu_item> *child, item_meta *meta) {
             this->id    = id;
             this->name  = name;
             this->type  = type;
             this->child = child;
             this->meta  = meta;
         }
-        void                    set_name(char *name) { this->name = name; }
+        void                    set_name(std::string name) { this->name = name; }
         void                    set_meta(item_meta *meta) { this->meta = meta; }
         item_meta              *get_meta() { return this->meta; }
         type_t                  get_type() { return this->type; }
         uint16_t                get_id() { return this->id; }
-        char                   *get_name() { return this->name; }
+        std::string             get_name() { return this->name; }
         std::vector<menu_item> *get_child() { return this->child; }
 
         char *format(char **buf, int sz) {
@@ -93,33 +89,33 @@ class GunMenu {
                 case GunMenu::TYPE_NORM_STR:
                 case GunMenu::TYPE_CENTER_STR:
                     if (child)
-                        snprintf(*buf, sz, " %-13s >", name);
+                        snprintf(*buf, sz, " %-13s >", name.c_str());
                     else
-                        snprintf(*buf, sz, " %-13s", name);
+                        snprintf(*buf, sz, " %-13s", name.c_str());
                     break;
 
                 case GunMenu::TYPE_DIGIT_8: {
                     uint8_t *v = (uint8_t *)meta->get_data();
                     if (v)
-                        snprintf(*buf, sz, " %-13s [%*d]", name, meta->get_digit(), *v);
+                        snprintf(*buf, sz, " %-13s [%*d]", name.c_str(), meta->get_digit(), *v);
                     else
-                        snprintf(*buf, sz, " %-13s [%*c]", name, meta->get_digit(), 'N');
+                        snprintf(*buf, sz, " %-13s [%*c]", name.c_str(), meta->get_digit(), 'N');
                 } break;
 
                 case GunMenu::TYPE_DIGIT_16: {
                     uint16_t *v = (uint16_t *)meta->get_data();
                     if (v)
-                        snprintf(*buf, sz, " %-13s [%*d]", name, meta->get_digit(), *v);
+                        snprintf(*buf, sz, " %-13s [%*d]", name.c_str(), meta->get_digit(), *v);
                     else
-                        snprintf(*buf, sz, " %-13s [%*c]", name, meta->get_digit(), 'N');
+                        snprintf(*buf, sz, " %-13s [%*c]", name.c_str(), meta->get_digit(), 'N');
                 } break;
 
                 case GunMenu::TYPE_BOOL: {
                     bool *v = (bool *)meta->get_data();
                     if (v)
-                        snprintf(*buf, sz, " %-13s [%c]", name, *v ? '*' : ' ');
+                        snprintf(*buf, sz, " %-13s [%c]", name.c_str(), *v ? '*' : ' ');
                     else
-                        snprintf(*buf, sz, " %-13s [%c]", name, 'N');
+                        snprintf(*buf, sz, " %-13s [%c]", name.c_str(), 'N');
                 } break;
             }
             return *buf;
@@ -127,7 +123,7 @@ class GunMenu {
 
        private:
         uint16_t                id;
-        char                   *name;
+        std::string             name;
         type_t                  type;
         item_meta              *meta;
         std::vector<menu_item> *child;
@@ -149,10 +145,10 @@ class GunMenu {
     // public functions
     //
     GunMenu();
-    void  setup(String name, std::vector<menu_item> *menu, Callback *callback = NULL,
+    void  setup(std::string name, std::vector<menu_item> *menu, Callback *callback = NULL,
                 std::map<uint16_t, item_meta *> *bind = NULL);
     void  handle_event(key_t key);
-    char *title();
+    std::string title();
     bool  updated();
     std::vector<menu_item> *jump(std::vector<menu_item> *menu, uint16_t id, int8_t *pos);
     void  draw(GunDisplay *display);
@@ -165,7 +161,6 @@ class GunMenu {
    private:
     typedef struct pinfo {
         std::vector<menu_item> *parent;
-        menu_item              *item;
         int8_t                  pos;
 
         pinfo(std::vector<menu_item> *parent, int8_t pos) {
@@ -177,7 +172,7 @@ class GunMenu {
     void init(std::vector<menu_item> *menu, std::map<uint16_t, item_meta *> *bind);
     bool touch(type_t type, item_meta *meta, bool inc);
 
-    char                                         *_name;
+    std::string                                  _name;
     std::vector<menu_item>                       *_top;
     std::vector<menu_item>                       *_cur;
     int8_t                                        _cur_pos;
