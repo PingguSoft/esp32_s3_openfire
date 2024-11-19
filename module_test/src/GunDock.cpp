@@ -22,7 +22,7 @@ void GunDock::process() {
 
                     case 'T':  // Toggle Test/Processing Mode
                         if (_callback) {
-                            _callback->onDockCallback(CMD_TOGGLE_TEST_MODE, NULL, 0, _stream);
+                            _callback->onSerialCallback(CMD_TOGGLE_TEST_MODE, NULL, 0, _stream);
                         }
                         _state = STATE_IDLE;
                         break;
@@ -30,7 +30,7 @@ void GunDock::process() {
                     case 'P':  // Enter Docked Mode
                         if (_callback) {
                             ch = 1;
-                            _callback->onDockCallback(CMD_DOCK_MODE, (uint8_t*)&ch, 1, _stream);
+                            _callback->onSerialCallback(CMD_DOCK_MODE, (uint8_t*)&ch, 1, _stream);
                         }
                         _state = STATE_IDLE;
                         break;
@@ -38,7 +38,7 @@ void GunDock::process() {
                     case 'E':  // Exit Docked Mode
                         if (_callback) {
                             ch = 0;
-                            _callback->onDockCallback(CMD_DOCK_MODE, (uint8_t*)&ch, 1, _stream);
+                            _callback->onSerialCallback(CMD_DOCK_MODE, (uint8_t*)&ch, 1, _stream);
                         }
                         _state = STATE_IDLE;
                         break;
@@ -49,14 +49,14 @@ void GunDock::process() {
 
                     case 'S':  // Save current profile
                         if (_callback) {
-                            _callback->onDockCallback(CMD_SAVE_PREFERENCE, NULL, 0, _stream);
+                            _callback->onSerialCallback(CMD_SAVE_PREFERENCE, NULL, 0, _stream);
                         }
                         _state = STATE_IDLE;
                         break;
 
                     case 'c':  // Clear EEPROM
                         if (_callback) {
-                            _callback->onDockCallback(CMD_CLEAR_EEPROM, NULL, 0, _stream);
+                            _callback->onSerialCallback(CMD_CLEAR_EEPROM, NULL, 0, _stream);
                         }
                         _state = STATE_IDLE;
                         break;
@@ -82,7 +82,7 @@ void GunDock::process() {
             case STATE_REBOOT:
                 if (ch == 'x') {
                     if (_callback) {
-                        _callback->onDockCallback(CMD_REBOOT, NULL, 0, _stream);
+                        _callback->onSerialCallback(CMD_REBOOT, NULL, 0, _stream);
                     }
                 }
                 _state = STATE_IDLE;
@@ -90,14 +90,14 @@ void GunDock::process() {
 
             case STATE_TEST_FFB:
                 if (_callback) {
-                    _callback->onDockCallback(CMD_TEST_FFB, (uint8_t*)&ch, 1, _stream);
+                    _callback->onSerialCallback(CMD_TEST_FFB, (uint8_t*)&ch, 1, _stream);
                 }
                 _state = STATE_IDLE;
                 break;
 
             case STATE_BRIGHT:
                 if (_callback) {
-                    _callback->onDockCallback(CMD_IR_BRIGHTNESS, (uint8_t*)&ch, 1, _stream);
+                    _callback->onSerialCallback(CMD_IR_BRIGHTNESS, (uint8_t*)&ch, 1, _stream);
                 }
                 _state = STATE_IDLE;
                 break;
@@ -110,7 +110,7 @@ void GunDock::process() {
             case STATE_CALIBRATION:
                 if (ch == 'C') {
                     if (_callback) {
-                        _callback->onDockCallback(CMD_CALIBRATION_MODE, _buf, 1, _stream);
+                        _callback->onSerialCallback(CMD_CALIBRATION_MODE, _buf, 1, _stream);
                     }
                 }
                 _state = STATE_IDLE;
@@ -131,7 +131,7 @@ void GunDock::process() {
                 if (ch == 'X' || ch == '.') {
                     if (_callback) {
                         _buf[_pos++] = 0;
-                        _callback->onDockCallback(CMD_EEPROM_UPDATE, (uint8_t*)_buf, _pos, _stream);
+                        _callback->onSerialCallback(CMD_EEPROM_UPDATE, (uint8_t*)_buf, _pos, _stream);
                     }
                     _state = (ch == 'X') ? STATE_HEADER_START : STATE_IDLE;
                 } else {
@@ -143,21 +143,21 @@ void GunDock::process() {
                 switch (ch) {
                     case 'b':
                         if (_callback) {
-                            _callback->onDockCallback(CMD_EEPROM_READ_TOGGLES, NULL, 0, _stream);
+                            _callback->onSerialCallback(CMD_EEPROM_READ_TOGGLES, NULL, 0, _stream);
                         }
                         _state = STATE_IDLE;
                         break;
 
                     case 'p':
                         if (_callback) {
-                            _callback->onDockCallback(CMD_EEPROM_READ_PINS, NULL, 0, _stream);
+                            _callback->onSerialCallback(CMD_EEPROM_READ_PINS, NULL, 0, _stream);
                         }
                         _state = STATE_IDLE;
                         break;
 
                     case 's':
                         if (_callback) {
-                            _callback->onDockCallback(CMD_EEPROM_READ_SETTINGS, NULL, 0, _stream);
+                            _callback->onSerialCallback(CMD_EEPROM_READ_SETTINGS, NULL, 0, _stream);
                         }
                         _state = STATE_IDLE;
                         break;
@@ -168,7 +168,7 @@ void GunDock::process() {
 
                     case 'i':
                         if (_callback) {
-                            _callback->onDockCallback(CMD_EEPROM_READ_USB, NULL, 0, _stream);
+                            _callback->onSerialCallback(CMD_EEPROM_READ_USB, NULL, 0, _stream);
                         }
                         _state = STATE_IDLE;
                         break;
@@ -177,7 +177,7 @@ void GunDock::process() {
 
             case STATE_EEPROM_PROFILE:
                 if (_callback) {
-                    _callback->onDockCallback(CMD_EEPROM_READ_PROFILE, (uint8_t*)&ch, 1, _stream);
+                    _callback->onSerialCallback(CMD_EEPROM_READ_PROFILE, (uint8_t*)&ch, 1, _stream);
                 }
                 _state = STATE_IDLE;
                 break;

@@ -52,7 +52,6 @@ static const pin_info_t _tbl_sw_pins[] = {
     {PIN_JOY_ADC_Y,     ANALOG,                    0, PAD_AXIS_Y | (JOY_ADC_MAX << 12) | (JOY_ADC_MIN), ( 7 << 8) | (8 << 0)},     // up-7, down-8
     {PIN_JOY_ADC_X,     ANALOG,                    0, PAD_AXIS_X | (JOY_ADC_MAX << 12) | (JOY_ADC_MIN), (10 << 8) | (9 << 0)},     // right-10, left-9
 };
-// clang-format on
 
 static const uint16_t IDM_PROFILE          = 0x0100;
 static const uint16_t IDM_PROFILE_1        = 0x0101;
@@ -78,15 +77,20 @@ static const uint16_t IDM_AUTOFIRE_ST_DLY  = 0x0702;
 static const uint16_t IDM_AUTOFIRE_RPT_DLY = 0x0702;
 static const uint16_t IDM_CALIBRATION      = 0x0800;
 static const uint16_t IDM_CALIBRATION_MSG  = 0x0801;
-static const uint16_t IDM_SAVE             = 0x0900;
-static const uint16_t IDM_EXIT             = 0x0A00;
+static const uint16_t IDM_INTERFACE        = 0x0900;
+static const uint16_t IDM_INTERFACE_USB    = 0x0901;
+static const uint16_t IDM_INTERFACE_BT     = 0x0902;
+static const uint16_t IDM_SERIAL_MODE      = 0x0A00;
+static const uint16_t IDM_SERIAL_DOCK      = 0x0A01;
+static const uint16_t IDM_SERIAL_MAMEHOOK  = 0x0A02;
+static const uint16_t IDM_SAVE             = 0x0E00;
+static const uint16_t IDM_EXIT             = 0x0F00;
 
 /*
 *****************************************************************************************
 * VARIABLES
 *****************************************************************************************
 */
-// clang-format off
 static std::vector<GunMenu::menu_item> _menu_sub_profile = {
     {IDM_PROFILE_1, "", GunMenu::TYPE_NORM_STR },
     {IDM_PROFILE_2, "", GunMenu::TYPE_NORM_STR },
@@ -120,6 +124,16 @@ static std::vector<GunMenu::menu_item> _menu_sub_cal = {
     {IDM_CALIBRATION_MSG, "Welcome!\nPull trigger to\nstart calibration!", GunMenu::TYPE_CENTER_STR}
 };
 
+static std::vector<GunMenu::menu_item> _menu_sub_if = {
+    {IDM_INTERFACE_USB, "USB", GunMenu::TYPE_NORM_STR},
+    {IDM_INTERFACE_BT , "Bluetooth", GunMenu::TYPE_NORM_STR}
+};
+
+static std::vector<GunMenu::menu_item> _menu_sub_serial = {
+    {IDM_SERIAL_DOCK, "Dock", GunMenu::TYPE_NORM_STR},
+    {IDM_SERIAL_MAMEHOOK , "MameHooker", GunMenu::TYPE_NORM_STR}
+};
+
 static std::vector<GunMenu::menu_item> _menu_top = {
     {IDM_PROFILE, "PROFILE", GunMenu::TYPE_NORM_STR, &_menu_sub_profile },
     {IDM_RUNMODE, "RUN MODE", GunMenu::TYPE_NORM_STR, &_menu_sub_runmode },
@@ -129,9 +143,10 @@ static std::vector<GunMenu::menu_item> _menu_top = {
     {IDM_SOLENOID, "SOLENOID", GunMenu::TYPE_NORM_STR, &_menu_sub_solenoid },
     {IDM_AUTOFIRE, "AUTO FIRE", GunMenu::TYPE_NORM_STR, &_menu_sub_autofire },
     {IDM_CALIBRATION, "CALIBRATION", GunMenu::TYPE_NORM_STR, &_menu_sub_cal },
+    {IDM_INTERFACE, "INTERFACE", GunMenu::TYPE_NORM_STR, &_menu_sub_if },
+    {IDM_SERIAL_MODE, "SERIAL PORT", GunMenu::TYPE_NORM_STR, &_menu_sub_serial },
     {IDM_SAVE, "SAVE", GunMenu::TYPE_NORM_STR },
     {IDM_EXIT, "EXIT", GunMenu::TYPE_NORM_STR },
-    {0x0B00, "", GunMenu::TYPE_NORM_STR }
 };
 // clang-format on
 
@@ -185,8 +200,7 @@ int debug_printf(const char *format, ...) {
 //
 class GunMenuHandler {
    public:
-    GunMenuHandler()
-        : _enable(true) {}
+    GunMenuHandler() : _enable(true) {}
 
     void onMenuItemInit(uint16_t id, GunMenu::menu_item *item) {
         switch (id) {
@@ -219,6 +233,14 @@ class GunMenuHandler {
             case IDM_RUNMODE_NORM:
             case IDM_RUNMODE_AVG:
                 _settings->get_profile()->runMode = (id - IDM_RUNMODE_NORM);
+                break;
+
+            case IDM_SERIAL_DOCK:
+                _settings->get_feature_config()->serialHooker = false;
+                break;
+
+            case IDM_SERIAL_MAMEHOOK:
+                _settings->get_feature_config()->serialHooker = true;
                 break;
         }
     }
@@ -290,7 +312,7 @@ class GunMenuHandler {
 //
 // GunMain
 //
-class GunMain : public GunDockCallback, public GunMameHookerCallback, public GunMenu::Callback {
+class GunMain : public GunSerialCallback, public GunMenu::Callback {
    public:
     GunMain() {
         _gunJoy      = new GunJoyButton();
@@ -318,24 +340,156 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback, public Gun
             case IDM_IR:
                 _gunCam->update_setting();
                 break;
+
+            case IDM_SERIAL_DOCK:
+            case IDM_SERIAL_MAMEHOOK:
+                if (_gunSerial)
+                    delete _gunSerial;
+                if (_gunSettings->get_feature_config()->serialHooker)
+                    _gunSerial = new GunMameHooker(_gunHID->get_serial());
+                else
+                    _gunSerial = new GunDock(_gunHID->get_serial());
+                break;
         }
     }
 
-    void onMameHookCallback(uint8_t cmd, uint8_t *pData, uint16_t size, Stream *stream) {}
+    void onMameHookCallback(uint8_t cmd, uint8_t *pData, uint16_t size, Stream *stream) {
+        switch (cmd) {
+            case GunMameHooker::CMD_START: {
+                uint8_t mode = *pData;
+                if (mode == '0') {              // Start with solenoid enabled
+                } else if (mode == '1') {       // Start with rumble enabled
+                } else if (mode == '2') {       // Start with the RED LED enabled
+                } else if (mode == '3') {       // Start with the GREEN LED enabled
+                } else if (mode == '4') {       // Start with the BLUE LED enabled
+                } else if (mode == '6') {       // Start with everything enabled
+                }
+            } break;
+
+            case GunMameHooker::CMD_END:
+                break;
+
+            case GunMameHooker::CMD_MODE: {
+                uint8_t mode = *pData;
+                uint8_t sub  = *(pData + 2);
+
+                switch (mode) {
+                    case '0':   // Device Output Mode
+                        if (sub == '0') {           // mouse & keyboard
+                        } else if (sub == '1') {    // Gamepad, w/ Camera mapped to Right Stick
+                        } else if (sub == '2') {    // hybrid
+                        }
+                        break;
+
+                    case '1':   // Offscreen Firing Mode
+                        if (sub == '0') {           // Disabled (not used in OpenFIRE)
+                        } else if (sub == '1') {    // Fire in bottom-left corner (not used in OpenFIRE)
+                        } else if (sub == '2') {    // Offscreen Button Mode enabled (i.e. offscreen trigger pulls generates a Right Click instead of a Left Click)
+                        } else if (sub == '3') {    // Normal shot (always on when Offscreen Button Mode isn't set in OpenFIRE)
+                        }
+                        break;
+
+                    case '2':   // Pedal Mapping
+                        if (sub == '0') {           // Separate Button (as mapped)
+                        } else if (sub == '1') {    // As Right Mouse
+                        } else if (sub == '2') {    // As Middle Mouse (OpenFIRE exclusive)
+                        }
+                        break;
+
+                    case '3':  // Aspect Ratio correction
+                        if (sub == '0') {           // Fullscreen
+                        } else if (sub == '1') {    // 4:3 correction
+                        }
+                        break;
+
+                    case '4':  // Temp Sensor Control (not used in OpenFIRE)
+                        if (sub == '0') {           // disabled
+                        } else if (sub == '1') {    // enabled
+                        }
+                        break;
+
+                    case '5':  // Auto Reload (not used in OpenFIRE)
+                        if (sub == '0') {           // disabled
+                        } else if (sub == '1') {    // enabled
+                        }
+                        break;
+
+                    case '6':  // Rumble Only Mode
+                        if (sub == '0') {           // Disabled (Solenoid allowed)
+                        } else if (sub == '1') {    // Enabled (Solenoid disabled, Rumble enabled)
+                        }
+                        break;
+
+                    case '8':  // Autofire Mode
+                        if (sub == '0') {           // Disabled (sustained fire is kept enabled in OpenFIRE)
+                        } else if (sub == '1') {    // Auto fire on (enables Burst Fire in OpenFIRE)
+                        } else if (sub == '2') {    // Auto fire always on rapid fire
+                        }
+                        break;
+
+                    case 'D':  // Display Mode (OpenFIRE exclusive)
+                        if (sub == 1) {             // Life Only
+                        } else if (sub == '2') {    // Ammo Only
+                        } else if (sub == '3') {    // Life & Ammo Splitscreen
+                            if (size > 3 && *(pData + 3) == 'B') {  // Life Bar (Life Glyphs otherwise)
+                            }
+                        }
+                        break;
+                }
+            } break;
+
+            case GunMameHooker::CMD_FFB:{
+                uint8_t mode = *pData;
+                uint8_t sub  = *(pData + 2);
+
+                switch (mode) {
+                    case '0':   // Solenoid
+                        if (sub == '0') {           // Off
+                        } else if (sub == '1') {    // On
+                        } else if (sub == '2') {    // Pulse
+                            atoi((char*)(pData + 4));
+                        }
+                        break;
+
+                    case '1':   // Rumble
+                        if (sub == '0') {           // Off
+                        } else if (sub == '1') {    // On
+                        } else if (sub == '2') {    // Pulse
+                            atoi((char*)(pData + 4));
+                        }
+                        break;
+
+                    case '2':   // RGB Red
+                    case '3':   // RGB Green
+                    case '4':   // RGB Blue
+                        if (sub == '0') {           // Off
+                        } else if (sub == '1') {    // On
+                            atoi((char*)(pData + 4));
+                        } else if (sub == '2') {    // Pulse
+                            atoi((char*)(pData + 4));
+                        }
+                        break;
+
+                    case 'D':   // Display Event (OpenFIRE exclusive)
+                        if (*(pData + 1) == 'A') {          // New Ammo Count
+                            atoi((char*)(pData + 3));
+                        } else if (*(pData + 1) == 'L') {   // New Life Count
+                            atoi((char*)(pData + 3));
+                        }
+                        break;
+                }
+                break;
+            } break;
+        }
+    }
 
     void onDockCallback(uint8_t cmd, uint8_t *pData, uint16_t size, Stream *stream) {
         static GunSettings::GunMode_e last_mode;
 
-        _gunSettings->onDockCallback(cmd, pData, size, stream);
+        _gunSettings->onSerialCallback(cmd, pData, size, stream);
         switch (cmd) {
             case GunDock::CMD_DOCK_MODE:
-                if (*pData) {
-                    LOGV("docked mode\n");
-                    last_mode = update_gun_mode(GunSettings::GunMode_Docked);
-                } else {
-                    LOGV("docked mode exit\n");
-                    update_gun_mode(last_mode);
-                }
+                last_mode = update_gun_mode(*pData ? GunSettings::GunMode_Docked : last_mode);
                 break;
 
             case GunDock::CMD_CALIBRATION_MODE:
@@ -379,6 +533,13 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback, public Gun
         }
     }
 
+    void onSerialCallback(uint8_t cmd, uint8_t *pData, uint16_t size, Stream *stream) {
+        if (_gunSettings->get_feature_config()->serialHooker)
+            onMameHookCallback(cmd, pData, size, stream);
+        else
+            onDockCallback(cmd, pData, size, stream);
+    }
+
     void update_auto_fire(GunSettings::GunMode_e mode) {
         uint16_t strt_dly;
         uint16_t rpt_dly;
@@ -396,9 +557,8 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback, public Gun
 
             default:
                 if (_gunSettings->get_feature_config()->autofireActive) {
-                    GunSettings::params_map_t *params = _gunSettings->get_param_config();
-                    strt_dly                          = params->solenoidLongInterval;
-                    rpt_dly                           = params->solenoidFastInterval;
+                    strt_dly = _gunSettings->get_param_config()->solenoidLongInterval;
+                    rpt_dly  = _gunSettings->get_param_config()->solenoidFastInterval;
                 } else {
                     strt_dly = 0;
                     rpt_dly  = 0;
@@ -422,6 +582,7 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback, public Gun
     GunSettings::GunMode_e update_gun_mode(GunSettings::GunMode_e mode) {
         GunSettings::GunMode_e last = _gunSettings->get_gun_mode();
 
+        LOGV("gun mode : %d->%d\n", last, mode);
         _gunSettings->set_gun_mode(mode);
         update_auto_fire(mode);
         update_force_feedback();
@@ -429,8 +590,6 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback, public Gun
             _gunMenu->jump(IDM_CALIBRATION_MSG);
             _gunCali->begin(last);
         }
-        LOGV("mode %d->%d\n", last, mode);
-
         return last;
     }
 
@@ -445,7 +604,7 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback, public Gun
         _pixels->setPixelColor(0, _pixels->Color(0, 0, 255));
         _pixels->show();
 
-        // olde display
+        // oled display
         pinMode(PIN_PERI_SDA, INPUT_PULLUP);
         pinMode(PIN_PERI_SCL, INPUT_PULLUP);
         Wire1.begin(PIN_PERI_SDA, PIN_PERI_SCL, 400000);
@@ -467,22 +626,17 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback, public Gun
         // camera setup
         _gunCam->setup(_gunSettings);
 
-        // dock setup
-        _gunDock = new GunDock(_gunHID->get_serial());
-        _gunDock->set_callback(this);
-
-        _gunMameHooker = new GunMameHooker(_gunHID->get_serial());
-        _gunMameHooker->set_callback(this);
+        // serial setup
+        if (_gunSettings->get_feature_config()->serialHooker)
+            _gunSerial = new GunMameHooker(_gunHID->get_serial(), this);
+        else
+            _gunSerial = new GunDock(_gunHID->get_serial(), this);
 
         // calibration setup
         _gunCali->setup(_gunSettings, _gunHID, _gunCam);
 
-        if (!is_loaded) {
-            LOGV("calibration begin\n");
-            update_gun_mode(GunSettings::GunMode_Calibration);
-        } else {
-            update_gun_mode(GunSettings::GunMode_Run);
-        }
+        // initial gun mode
+        update_gun_mode(is_loaded ? GunSettings::GunMode_Run : GunSettings::GunMode_Calibration);
     }
 
     void handle_ir_test(GunSettings *settings, GunCamera *cam) {
@@ -507,7 +661,8 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback, public Gun
         int mx = map(cam->get_layout()->testMedianX(), 0, 1023 << 2, 1920, 0);
         int my = map(cam->get_layout()->testMedianY(), 0, 768 << 2, 0, 1080);
         pos += sprintf(pos, "%d,%d,\r\n", mx, my);
-        _gunDock->get_stream()->print(buf);
+        if (!_gunSettings->get_feature_config()->serialHooker)
+            _gunSerial->get_stream()->print(buf);
     }
 
     void handle_event(GunJoyButton::report_t *report) {
@@ -554,26 +709,31 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback, public Gun
                             mask2 = PAD_HAT_MASK_Y_M << 24;
                         }
 
-                        if (_btn_trk.isPressed(mask1)) {
-                            _gunDock->get_stream()->printf("Pressed: %d\r\n", evt1);
-                        } else if (_btn_trk.isReleased(mask1)) {
-                            _gunDock->get_stream()->printf("Released: %d\r\n", evt1);
-                        }
+                        if (!_gunSettings->get_feature_config()->serialHooker) {
+                            if (_btn_trk.isPressed(mask1)) {
+                                _gunSerial->get_stream()->printf("Pressed: %d\r\n", evt1);
+                            } else if (_btn_trk.isReleased(mask1)) {
+                                _gunSerial->get_stream()->printf("Released: %d\r\n", evt1);
+                            }
 
-                        if (_btn_trk.isPressed(mask2)) {
-                            _gunDock->get_stream()->printf("Pressed: %d\r\n", evt2);
-                        } else if (_btn_trk.isReleased(mask2)) {
-                            _gunDock->get_stream()->printf("Released: %d\r\n", evt2);
+                            if (_btn_trk.isPressed(mask2)) {
+                                _gunSerial->get_stream()->printf("Pressed: %d\r\n", evt2);
+                            } else if (_btn_trk.isReleased(mask2)) {
+                                _gunSerial->get_stream()->printf("Released: %d\r\n", evt2);
+                            }
                         }
                     } else {
-                        if (_btn_trk.isPressed(_tbl_sw_pins[i].pad_evt)) {
-                            _gunDock->get_stream()->printf("Pressed: %d\r\n", _tbl_sw_pins[i].dock_evt);
-                        } else if (_btn_trk.isReleased(_tbl_sw_pins[i].pad_evt)) {
-                            _gunDock->get_stream()->printf("Released: %d\r\n", _tbl_sw_pins[i].dock_evt);
+                        if (!_gunSettings->get_feature_config()->serialHooker) {
+                            if (_btn_trk.isPressed(_tbl_sw_pins[i].pad_evt)) {
+                                _gunSerial->get_stream()->printf("Pressed: %d\r\n", _tbl_sw_pins[i].dock_evt);
+                            } else if (_btn_trk.isReleased(_tbl_sw_pins[i].pad_evt)) {
+                                _gunSerial->get_stream()->printf("Released: %d\r\n", _tbl_sw_pins[i].dock_evt);
+                            }
                         }
                     }
                 }
-                _gunDock->get_stream()->printf("Analog: %d\r\n", _tbl_hat2fire[report->hat]);
+                if (!_gunSettings->get_feature_config()->serialHooker)
+                    _gunSerial->get_stream()->printf("Analog: %d\r\n", _tbl_hat2fire[report->hat]);
 
                 x = map(_gunCam->x(), 0, GunHID::mouse_max_x, -127, 127);
                 y = map(_gunCam->y(), 0, GunHID::mouse_max_y, -127, 127);
@@ -613,10 +773,9 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback, public Gun
     void loop() {
         bool                    update;
         GunJoyButton::report_t *report;
-        GunSettings::GunMode_e  mode;
 
-        // process docking commands
-        _gunDock->process();
+        // process serial commands
+        _gunSerial->process();
 
         // input button processing
         update = _gunJoy->loop();
@@ -638,10 +797,9 @@ class GunMain : public GunDockCallback, public GunMameHookerCallback, public Gun
     GunCamera         *_gunCam;
     GunCalibration    *_gunCali;
     GunSettings       *_gunSettings;
-    GunDock           *_gunDock;
     GunDisplay        *_gunDisp;
     GunMenuHandler    *_gunMenu;
-    GunMameHooker     *_gunMameHooker;
+    GunSerial         *_gunSerial;
     ButtonTracker      _btn_trk;
     GunSettings::GunMode_e _last_mode;
     uint8_t            _tbl_hat2fire[9] = {0, 1, 8, 7, 6, 5, 4, 3, 2};

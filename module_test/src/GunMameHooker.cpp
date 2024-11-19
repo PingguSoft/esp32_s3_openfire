@@ -4,9 +4,10 @@
 void GunMameHooker::process() {
     int  ch;
     int  len = _stream->available();
-    bool is_read_out = true;
+    bool is_read_out;
 
     for (int i = 0; i < len; i++) {
+        is_read_out = true;
         ch = _stream->peek();
         // debug_printf("%2X [%c]\n", ch, ch);
 
@@ -19,7 +20,7 @@ void GunMameHooker::process() {
 
                     case 'E':
                         if (_callback) {
-                            _callback->onMameHookCallback(CMD_END, NULL, 0, _stream);
+                            _callback->onSerialCallback(CMD_END, NULL, 0, _stream);
                         }
                         _state = STATE_IDLE;
                         break;
@@ -42,7 +43,7 @@ void GunMameHooker::process() {
 
             case STATE_CMD_START:
                 if (_callback) {
-                    _callback->onMameHookCallback(CMD_START, (uint8_t*)&ch, 1, _stream);
+                    _callback->onSerialCallback(CMD_START, (uint8_t*)&ch, 1, _stream);
                 }
                 _state = STATE_IDLE;
                 break;
@@ -50,26 +51,33 @@ void GunMameHooker::process() {
             case STATE_CMD_MODE:
                 _buf[_pos++] = ch;
                 if (_pos == 3) {
-                    if ((_buf[0] == '0' && _buf[2] == '1') || (_buf[0]=='D' && _buf[2] == '3')) {
-                        _state = STATE_CMD_MODE_EXT;
-                    } else if (_callback) {
-                        _callback->onMameHookCallback(CMD_MODE, _buf, 3, _stream);
+                    if (_buf[0] == '0' && _buf[2] == '1')
+                        _state = STATE_CMD_MODE_EXT_01;
+                    else if (_buf[0]=='D' && _buf[2] == '3')
+                        _state = STATE_CMD_MODE_EXT_D3;
+                    else if (_callback) {
+                        _callback->onSerialCallback(CMD_MODE, _buf, 3, _stream);
                         _state = STATE_IDLE;
                     }
                 }
                 break;
 
-            case STATE_CMD_MODE_EXT:
-                _buf[_pos++] = ch;
+            case STATE_CMD_MODE_EXT_01:
+            case STATE_CMD_MODE_EXT_D3:
+                if ((_state == STATE_CMD_MODE_EXT_01 && ch == 'L') || (_state == STATE_CMD_MODE_EXT_D3 && ch == 'B'))
+                    _buf[_pos++] = ch;
+                else
+                    is_read_out = false;
+
                 if (_callback) {
-                    _callback->onMameHookCallback(CMD_MODE, _buf, 4, _stream);
+                    _callback->onSerialCallback(CMD_MODE, _buf, _pos, _stream);
                 }
                 _state = STATE_IDLE;
                 break;
 
             case STATE_CMD_FFB:
                 _buf[_pos++] = ch;
-                if (_pos == 2) {
+                if (_pos == 1) {
                     if (_buf[0] == 'D') {
                         _state = STATE_CMD_FFB_PARAM;
                     }
@@ -78,7 +86,7 @@ void GunMameHooker::process() {
                         ('2' <= _buf[0] && _buf[0] <= '4' && _buf[2] >= '1')) {
                         _state = STATE_CMD_FFB_PARAM;
                     } else if (_callback) {
-                        _callback->onMameHookCallback(CMD_FFB, _buf, 3, _stream);
+                        _callback->onSerialCallback(CMD_FFB, _buf, 3, _stream);
                         _state = STATE_IDLE;
                     }
                 }
@@ -105,7 +113,7 @@ void GunMameHooker::process() {
 
                 if (_dec_pos >= 3) {
                     if (_callback) {
-                        _callback->onMameHookCallback(CMD_FFB, _buf, _pos, _stream);
+                        _callback->onSerialCallback(CMD_FFB, _buf, _pos, _stream);
                     }
                     _state = STATE_IDLE;
                 }

@@ -11,8 +11,10 @@
 #define OPENFIRE_CODENAME "Dawn"
 #define OPENFIRE_BOARD    "rpipico"
 
-class GunSettings : public GunDockCallback {
+class GunSettings : public GunSerialCallback {
    public:
+
+// clang-format off
 /*
 *****************************************************************************************
 * CONST
@@ -42,7 +44,6 @@ class GunSettings : public GunDockCallback {
     * DATA TYPES
     *****************************************************************************************
     */
-    /// @brief Header ID
     typedef union HeaderId_u {
         uint8_t  bytes[4];
         uint32_t u32;
@@ -74,15 +75,16 @@ class GunSettings : public GunDockCallback {
     } __attribute__((packed)) profiles_t;
 
     typedef struct TogglesMap_s {
-        bool customPinsInUse;  // Are we using custom pins mapping?
-        bool rumbleActive;     // Are we allowed to do rumble?
-        bool solenoidActive;   // Are we allowed to use a solenoid?
-        bool autofireActive;   // Is autofire enabled?
-        bool simpleMenu;       // Is simple pause menu active?
-        bool holdToPause;      // Is holding A/B buttons to enter pause mode allowed?
-        bool commonAnode;  // If LED is Common Anode (+, connects to 5V) rather than Common Cathode (-, connects to GND)
-        bool lowButtonMode;  // Is low buttons mode active?
-        bool rumbleFF;       // Rumble force-feedback, instead of Solenoid
+        bool customPinsInUse;   // Are we using custom pins mapping?
+        bool rumbleActive;      // Are we allowed to do rumble?
+        bool solenoidActive;    // Are we allowed to use a solenoid?
+        bool autofireActive;    // Is autofire enabled?
+        bool simpleMenu;        // Is simple pause menu active?
+        bool holdToPause;       // Is holding A/B buttons to enter pause mode allowed?
+        bool commonAnode;       // If LED is Common Anode (+, connects to 5V) rather than Common Cathode (-, connects to GND)
+        bool lowButtonMode;     // Is low buttons mode active?
+        bool rumbleFF;          // Rumble force-feedback, instead of Solenoid
+        bool serialHooker;      // mamehooker?
     } __attribute__((packed)) feature_map_t;
 
     typedef struct PinsMap_s {
@@ -139,6 +141,7 @@ class GunSettings : public GunDockCallback {
         char     deviceName[16];
         uint16_t devicePID;
     } __attribute__((packed)) usb_map_t;
+// clang-format on
 
     /*
     *****************************************************************************************
@@ -169,7 +172,7 @@ class GunSettings : public GunDockCallback {
     void save();
     bool load();
 
-    virtual void onDockCallback(uint8_t cmd, uint8_t* pData, uint16_t size, Stream* stream);
+    virtual void onSerialCallback(uint8_t cmd, uint8_t* pData, uint16_t size, Stream* stream);
 
     /// @brief Required size for the preferences
     static unsigned int Size() { return sizeof(HeaderId_u) + sizeof(_profiles); }

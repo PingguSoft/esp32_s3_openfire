@@ -4,13 +4,9 @@
 #include <Arduino.h>
 
 #include "debug.h"
+#include "GunSerial.h"
 
-class GunDockCallback {
-   public:
-    virtual void onDockCallback(uint8_t cmd, uint8_t *pData, uint16_t size, Stream *stream) = 0;
-};
-
-class GunDock {
+class GunDock : public GunSerial {
    public:
     enum gun_dock_cmd_t {
         CMD_IR_BRIGHTNESS = 0,
@@ -32,14 +28,10 @@ class GunDock {
         CMD_REBOOT
     };
 
-    GunDock(Stream *stream) {
-        _state    = STATE_IDLE;
-        _stream   = stream;
-        _callback = NULL;
+    GunDock(Stream *stream, GunSerialCallback *callback=NULL) {
+        _state = STATE_IDLE;
     }
 
-    Stream *get_stream() { return _stream; }
-    void set_callback(GunDockCallback *callback) { _callback = callback; }
     void process();
 
    private:
@@ -57,8 +49,6 @@ class GunDock {
         STATE_REBOOT
     };
 
-    GunDockCallback *_callback;
-    Stream          *_stream;
     uint8_t          _state;
     uint8_t          _buf[100];
     uint8_t          _pos;

@@ -92,7 +92,7 @@ void GunSettings::tokenize(char *line, char *token, std::vector<char *> &tokens)
     }
 }
 
-void GunSettings::onDockCallback(uint8_t cmd, uint8_t *pData, uint16_t size, Stream *stream) {
+void GunSettings::onSerialCallback(uint8_t cmd, uint8_t *pData, uint16_t size, Stream *stream) {
     switch (cmd) {
         case GunDock::CMD_IR_BRIGHTNESS:
             get_profile()->irSensitivity = *pData - '0';

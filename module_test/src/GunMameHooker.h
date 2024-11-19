@@ -4,13 +4,9 @@
 #include <Arduino.h>
 
 #include "debug.h"
+#include "GunSerial.h"
 
-class GunMameHookerCallback {
-   public:
-    virtual void onMameHookCallback(uint8_t cmd, uint8_t *pData, uint16_t size, Stream *stream) = 0;
-};
-
-class GunMameHooker {
+class GunMameHooker : public GunSerial {
    public:
     enum gun_mame_hooker_cmd_t {
         CMD_START = 0,
@@ -19,14 +15,10 @@ class GunMameHooker {
         CMD_FFB,
     };
 
-    GunMameHooker(Stream *stream) {
-        _state    = STATE_IDLE;
-        _stream   = stream;
-        _callback = NULL;
+    GunMameHooker(Stream *stream, GunSerialCallback *callback=NULL) {
+        _state = STATE_IDLE;
     }
 
-    Stream *get_stream() { return _stream; }
-    void set_callback(GunMameHookerCallback *callback) { _callback = callback; }
     void process();
 
    private:
@@ -35,14 +27,13 @@ class GunMameHooker {
         STATE_CMD_START,
         STATE_CMD_END,
         STATE_CMD_MODE,
-        STATE_CMD_MODE_EXT,
+        STATE_CMD_MODE_EXT_01,
+        STATE_CMD_MODE_EXT_D3,
         STATE_CMD_FFB,
         STATE_CMD_FFB_PARAM,
         STATE_CMD_FFB_PARAM_DECI,
     };
 
-    GunMameHookerCallback *_callback;
-    Stream          *_stream;
     uint8_t          _state;
     uint8_t          _buf[100];
     uint8_t          _pos;
